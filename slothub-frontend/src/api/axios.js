@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Đảm bảo cổng này khớp với Backend của bạn
+    baseURL: 'https://slothub-toivoa.onrender.com/api', // Đảm bảo cổng này khớp với Backend của bạn
 });
 
 // Tự động đính kèm Token khi gọi API

@@ -257,100 +257,109 @@ const VendorMenu = () => {
         )}
       </div>
 
-      {/* ================= MODAL THÊM / SỬA MÓN ================= */}
+      {/* ================= MODAL THÊM / SỬA MÓN (ĐÃ FIX SCROLL) ================= */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="portal-card border rounded-[2rem] border border-[var(--portal-border)] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+          
+          {/* Cập nhật container: Thêm max-h-[90vh] và flex-col */}
+          <div className="portal-card border rounded-[2rem] border border-[var(--portal-border)] w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             
-            <div className="p-6 border-b border-[var(--portal-border)] flex justify-between items-center bg-[var(--portal-table-head)]">
+            {/* HEADER: Thêm shrink-0 để ghim cứng ở trên */}
+            <div className="p-6 border-b border-[var(--portal-border)] flex justify-between items-center bg-[var(--portal-table-head)] shrink-0">
               <h3 className="text-xl font-black">{editingItem ? 'Chỉnh sửa Món ăn' : 'Thêm Món mới'}</h3>
               <button type="button" onClick={closeModal} className="portal-muted hover:text-[var(--portal-text)] p-1 bg-[var(--portal-surface)] rounded-full hover:bg-[var(--portal-surface-hover)] transition-colors"><X size={20}/></button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-sm font-bold portal-text-secondary ml-1">Tên món ăn <span className="text-red-500">*</span></label>
-                  <input type="text" required value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: Cơm Tấm Sườn Bì" />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-sm font-bold portal-text-secondary ml-1">Giá bán (VNĐ) <span className="text-red-500">*</span></label>
-                  <input type="number" required min="0" value={formData.price} onChange={e=>setFormData({...formData, price: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: 35000" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-bold portal-text-secondary ml-1">Danh mục</label>
-                  <select value={formData.category} onChange={e=>setFormData({...formData, category: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors cursor-pointer">
-                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-bold portal-text-secondary ml-1 flex items-center gap-1.5">
-                    <Flame size={14} className="text-emerald-400" /> Calo (kcal)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="5000"
-                    step="1"
-                    value={formData.calories}
-                    onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
-                    className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors"
-                    placeholder="VD: 450 (để trống nếu chưa rõ)"
-                  />
-                  <p className="text-[11px] portal-muted ml-1">Giúp sinh viên & SlotAI gợi ý món healthy. Ước lượng 1 phần ăn.</p>
-                </div>
-
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-sm font-bold portal-text-secondary ml-1">
-                    Ảnh món ăn <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-                    <div className="flex-1 border-2 border-dashed border-[var(--portal-border)] rounded-xl p-5 text-center hover:border-[#F27124]/50 hover:bg-orange-500/5 transition-colors relative cursor-pointer min-h-[120px] flex flex-col justify-center">
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/jpg"
-                        onChange={handleImageChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <UploadCloud className="mx-auto portal-muted mb-2" size={28} />
-                      <p className="text-sm font-bold portal-text-secondary">Chọn ảnh từ máy tính / điện thoại</p>
-                      <p className="text-[11px] portal-muted mt-1">JPG, PNG — tối đa 5MB</p>
-                    </div>
-                    {(imagePreview || formData.imageUrl) && (
-                      <div className="w-full sm:w-28 h-28 rounded-xl overflow-hidden border border-[var(--portal-border)] shrink-0 bg-[var(--portal-surface)]">
-                        <img
-                          src={imagePreview || formData.imageUrl}
-                          alt="Xem trước"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
+            {/* FORM: Ôm trọn phần ruột và footer, chiếm không gian còn lại */}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              
+              {/* BODY FORM: Thêm overflow-y-auto để cuộn mượt mà */}
+              <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-bold portal-text-secondary ml-1">Tên món ăn <span className="text-red-500">*</span></label>
+                    <input type="text" required value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: Cơm Tấm Sườn Bì" />
                   </div>
-                  <p className="text-[11px] portal-muted ml-1">Hoặc dán link ảnh có sẵn (nếu không upload file):</p>
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => {
-                      const url = e.target.value;
-                      setFormData({ ...formData, imageUrl: url });
-                      if (!imageFile && url.trim()) setImagePreview(url.trim());
-                      if (!url.trim() && !imageFile) setImagePreview(null);
-                    }}
-                    className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors text-sm"
-                    placeholder="https://... (tùy chọn nếu đã chọn file)"
-                  />
-                </div>
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold portal-text-secondary ml-1">Giá bán (VNĐ) <span className="text-red-500">*</span></label>
+                    <input type="number" required min="0" value={formData.price} onChange={e=>setFormData({...formData, price: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: 35000" />
+                  </div>
 
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-sm font-bold portal-text-secondary ml-1">Mô tả món ăn</label>
-                  <textarea rows="2" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors resize-none" placeholder="Mô tả ngắn gọn nguyên liệu..."></textarea>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold portal-text-secondary ml-1">Danh mục</label>
+                    <select value={formData.category} onChange={e=>setFormData({...formData, category: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors cursor-pointer">
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold portal-text-secondary ml-1 flex items-center gap-1.5">
+                      <Flame size={14} className="text-emerald-400" /> Calo (kcal)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="5000"
+                      step="1"
+                      value={formData.calories}
+                      onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                      className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors"
+                      placeholder="VD: 450 (để trống nếu chưa rõ)"
+                    />
+                    <p className="text-[11px] portal-muted ml-1">Giúp sinh viên & SlotAI gợi ý món healthy. Ước lượng 1 phần ăn.</p>
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-bold portal-text-secondary ml-1">
+                      Ảnh món ăn <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+                      <div className="flex-1 border-2 border-dashed border-[var(--portal-border)] rounded-xl p-5 text-center hover:border-[#F27124]/50 hover:bg-orange-500/5 transition-colors relative cursor-pointer min-h-[120px] flex flex-col justify-center">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/jpg"
+                          onChange={handleImageChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <UploadCloud className="mx-auto portal-muted mb-2" size={28} />
+                        <p className="text-sm font-bold portal-text-secondary">Chọn ảnh từ máy tính / điện thoại</p>
+                        <p className="text-[11px] portal-muted mt-1">JPG, PNG — tối đa 5MB</p>
+                      </div>
+                      {(imagePreview || formData.imageUrl) && (
+                        <div className="w-full sm:w-28 h-28 rounded-xl overflow-hidden border border-[var(--portal-border)] shrink-0 bg-[var(--portal-surface)]">
+                          <img
+                            src={imagePreview || formData.imageUrl}
+                            alt="Xem trước"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] portal-muted ml-1 mt-3">Hoặc dán link ảnh có sẵn (nếu không upload file):</p>
+                    <input
+                      type="url"
+                      value={formData.imageUrl}
+                      onChange={(e) => {
+                        const url = e.target.value;
+                        setFormData({ ...formData, imageUrl: url });
+                        if (!imageFile && url.trim()) setImagePreview(url.trim());
+                        if (!url.trim() && !imageFile) setImagePreview(null);
+                      }}
+                      className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors text-sm"
+                      placeholder="https://... (tùy chọn nếu đã chọn file)"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-bold portal-text-secondary ml-1">Mô tả món ăn</label>
+                    <textarea rows="2" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors resize-none" placeholder="Mô tả ngắn gọn nguyên liệu..."></textarea>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end gap-3 border-t border-[var(--portal-border)]">
+              {/* FOOTER NÚT BẤM: Thêm shrink-0 để ghim chặt dưới đáy popup */}
+              <div className="p-6 py-4 flex justify-end gap-3 border-t border-[var(--portal-border)] shrink-0 bg-[var(--portal-card)]">
                 <button type="button" onClick={closeModal} className="px-6 py-3 rounded-xl font-bold portal-muted bg-[var(--portal-surface)] hover:bg-[var(--portal-surface-hover)] transition-colors">Hủy</button>
                 <button type="submit" disabled={isSubmitting} className="px-8 py-3 rounded-xl font-black bg-[#F27124] hover:bg-[#D95F1B] transition-colors shadow-lg shadow-orange-500/20 disabled:opacity-50 flex items-center gap-2">
                   {isSubmitting && <Loader2 size={18} className="animate-spin" />}
@@ -362,10 +371,11 @@ const VendorMenu = () => {
         </div>
       )}
 
+      {/* MODAL XEM ĐÁNH GIÁ (Cũng đã chỉnh lại max-h cho an toàn) */}
       {reviewsItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="portal-card border rounded-[2rem] border border-[var(--portal-border)] w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl">
-            <div className="p-5 border-b border-[var(--portal-border)] flex justify-between items-start gap-3">
+          <div className="portal-card border rounded-[2rem] border border-[var(--portal-border)] w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-[var(--portal-border)] flex justify-between items-start gap-3 shrink-0">
               <div>
                 <h3 className="text-lg font-black line-clamp-1">{reviewsItem.name}</h3>
                 <p className="text-sm text-amber-400 font-bold mt-1 flex items-center gap-1">
