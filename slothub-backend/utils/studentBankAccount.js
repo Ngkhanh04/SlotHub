@@ -21,7 +21,7 @@ const validateStudentBankAccount = (bankAccount) => {
     return { ok: true, data: { bankName, accountNumber, accountName } };
 };
 
-/** Mỗi sinh viên một STK — không cho hai tài khoản SV trùng ngân hàng + số TK */
+/** Mỗi khách hàng một STK — không cho hai tài khoản SV trùng ngân hàng + số TK */
 const assertUniqueStudentBank = async ({ bankName, accountNumber, excludeUserId }) => {
     const filter = {
         role: 'student',
@@ -35,7 +35,7 @@ const assertUniqueStudentBank = async ({ bankName, accountNumber, excludeUserId 
     if (existing) {
         return {
             ok: false,
-            message: 'Số tài khoản này đã được sinh viên khác liên kết. Mỗi sinh viên phải dùng tài khoản ngân hàng riêng.'
+            message: 'Số tài khoản này đã được khách hàng khác liên kết. Mỗi khách hàng phải dùng tài khoản ngân hàng riêng.'
         };
     }
     return { ok: true };

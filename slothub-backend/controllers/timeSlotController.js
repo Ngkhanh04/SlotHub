@@ -1,6 +1,6 @@
 const TimeSlot = require('../models/TimeSlot');
 
-// 1. [GET] Lấy danh sách các Slot đang mở (Cho sinh viên chọn lúc đặt cơm)
+// 1. [GET] Lấy danh sách các Slot đang mở (Cho khách hàng chọn lúc đặt cơm)
 const DEFAULT_SLOTS = [
     { startTime: '09:00', endTime: '09:30', maxCapacity: 50 },
     { startTime: '11:30', endTime: '12:00', maxCapacity: 50 },

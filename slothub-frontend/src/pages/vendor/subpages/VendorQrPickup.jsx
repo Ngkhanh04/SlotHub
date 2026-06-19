@@ -129,7 +129,7 @@ const VendorQrPickup = ({ onOrdersRefresh }) => {
           Quét mã nhận món
         </h2>
         <p className="portal-muted text-sm mt-2">
-          Sinh viên mở <strong className="portal-text-secondary">Mã nhận món</strong> — mã có hiệu lực <strong className="text-orange-300">2 giờ</strong> sau khi thanh toán.
+          Khách hàng mở <strong className="portal-text-secondary">Mã nhận món</strong> — mã có hiệu lực <strong className="text-orange-300">2 giờ</strong> sau khi thanh toán.
         </p>
       </div>
 
@@ -163,7 +163,7 @@ const VendorQrPickup = ({ onOrdersRefresh }) => {
           >
             {!cameraOn && (
               <p className="portal-muted text-sm text-center px-4">
-                Nhấn <strong className="portal-muted">Bật camera</strong> để quét mã QR của sinh viên
+                Nhấn <strong className="portal-muted">Bật camera</strong> để quét mã QR của khách hàng
               </p>
             )}
           </div>
@@ -225,7 +225,7 @@ const VendorQrPickup = ({ onOrdersRefresh }) => {
             </p>
             <p className="font-bold mt-2 flex items-center gap-2">
               <User size={16} className="portal-muted" />
-              {lastResult.order.user?.name || 'Sinh viên'}
+              {lastResult.order.user?.name || 'Khách hàng'}
             </p>
             <p className="text-xs portal-muted mt-1">
               Đơn #{lastResult.order._id.slice(-6)} · {statusLabel[lastResult.order.status] || lastResult.order.status}

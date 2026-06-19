@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const reportSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Sinh viên report
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Khách hàng report
     order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true }, // Report đơn hàng nào
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', required: true }, // Quán bị report
     issueType: { 

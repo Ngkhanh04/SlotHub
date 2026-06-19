@@ -57,7 +57,7 @@ const VendorOrders = ({ refreshKey = 0, onGoPickup }) => {
       {onGoPickup && (
         <div className="bg-gradient-to-r from-[#F27124]/20 to-transparent border border-[#F27124]/30 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm portal-text-secondary">
-            Sinh viên đến lấy món? Dùng <strong className="text-[var(--portal-text)]">Quét nhận món</strong> để quét QR trên app.
+            Khách hàng đến lấy món? Dùng <strong className="text-[var(--portal-text)]">Quét nhận món</strong> để quét QR trên app.
           </p>
           <button
             type="button"

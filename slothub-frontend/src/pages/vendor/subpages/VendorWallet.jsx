@@ -101,7 +101,7 @@ const VendorWallet = () => {
         <Info size={20} className="shrink-0 text-blue-400" />
         <div>
           <p className="font-bold text-blue-100 mb-1">Quy trình rút tiền</p>
-          <p>Khi sinh viên thanh toán, tiền thực tế vào quỹ Admin (VNPay/chuyển khoản). Ví của bạn ghi nhận doanh thu để rút. Admin duyệt lệnh rút và chuyển khoản vào TK ngân hàng của bạn.</p>
+          <p>Khi khách hàng thanh toán, tiền thực tế vào quỹ Admin (VNPay/chuyển khoản). Ví của bạn ghi nhận doanh thu để rút. Admin duyệt lệnh rút và chuyển khoản vào TK ngân hàng của bạn.</p>
         </div>
       </div>
 

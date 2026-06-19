@@ -35,7 +35,7 @@ const formatConversation = (conv, viewer) => {
             title = conv.vendor?.name || 'Quầy';
             subtitle = 'Chat với quầy · báo cáo / khiếu nại';
         } else {
-            title = conv.student?.name || 'Sinh viên';
+            title = conv.student?.name || 'Khách hàng';
             subtitle = conv.student?.email || '';
             avatar = conv.student?.avatar;
         }
@@ -111,7 +111,7 @@ const getMyConversations = async (req, res) => {
 const getVendorsForChat = async (req, res) => {
     try {
         if (req.user.role !== 'student') {
-            return res.status(403).json({ message: 'Chỉ sinh viên mới dùng được' });
+            return res.status(403).json({ message: 'Chỉ khách hàng mới dùng được' });
         }
 
         const orders = await Order.find({ user: req.user._id }).distinct('vendor');
@@ -141,7 +141,7 @@ const startConversation = async (req, res) => {
 
         if (type === 'STUDENT_VENDOR') {
             if (user.role !== 'student') {
-                return res.status(403).json({ message: 'Chỉ sinh viên chat với quầy' });
+                return res.status(403).json({ message: 'Chỉ khách hàng chat với quầy' });
             }
             if (!vendorId) return res.status(400).json({ message: 'Thiếu vendorId' });
 

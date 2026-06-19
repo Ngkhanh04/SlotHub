@@ -5,7 +5,7 @@ const studentNotiFilter = (userId) => ({
     recipientId: userId
 });
 
-// 1. [GET] Lấy danh sách thông báo sinh viên
+// 1. [GET] Lấy danh sách thông báo khách hàng
 const getMyNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find(studentNotiFilter(req.user.id))

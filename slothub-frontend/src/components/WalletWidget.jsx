@@ -251,7 +251,7 @@ const WalletWidget = ({ isOpen, onClose }) => {
                         ) : (
                             <div className="bg-red-50 p-5 rounded-2xl border border-red-100 text-center">
                                 <p className="text-sm font-bold text-red-600 mb-1">Chưa liên kết Thẻ!</p>
-                                <p className="text-xs text-gray-500 mb-3">Vào Hồ sơ cá nhân để liên kết STK ngân hàng riêng (mỗi sinh viên một tài khoản).</p>
+                                <p className="text-xs text-gray-500 mb-3">Vào Hồ sơ cá nhân để liên kết STK ngân hàng riêng (mỗi khách hàng một tài khoản).</p>
                             </div>
                         )}
                     </div>

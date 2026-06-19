@@ -16,7 +16,7 @@ const AdminTransactions = () => {
   const [fetchTrigger, setFetchTrigger] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // State quản lý Modal QR code của Sinh viên
+  // State quản lý Modal QR code của Khách hàng
   const [qrModalTx, setQrModalTx] = useState(null);
 
   useEffect(() => {
@@ -130,7 +130,7 @@ const AdminTransactions = () => {
                 <td className="p-5 pr-6 text-center">
                   {tx.status === 'PENDING' ? (
                     <div className="flex justify-center gap-2">
-                      {/* 🌟 NẾU LÀ RÚT TIỀN: Nút QR Code để quét thanh toán cho Sinh viên */}
+                      {/* 🌟 NẾU LÀ RÚT TIỀN: Nút QR Code để quét thanh toán cho Khách hàng */}
                       {(tx.type === 'WITHDRAW' || tx.type === 'PAYOUT') && tx.bankInfo && (
                           <button onClick={() => setQrModalTx(tx)} className="p-2 bg-orange-500/10 text-[#F27124] hover:bg-[#F27124] hover:text-[var(--portal-text)] rounded-xl transition-all" title="Quét mã chuyển tiền">
                              <QrCode size={16} />
@@ -162,7 +162,7 @@ const AdminTransactions = () => {
         </table>
       </div>
 
-      {/* ================= MODAL QUÉT MÃ QR CỦA SINH VIÊN (DÀNH CHO ADMIN) ================= */}
+      {/* ================= MODAL QUÉT MÃ QR CỦA KHÁCH HÀNG (DÀNH CHO ADMIN) ================= */}
       {qrModalTx && (
          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="portal-card border w-full max-w-sm rounded-[2rem] shadow-2xl p-6 border border-[var(--portal-border)] relative animate-in zoom-in-95 duration-200">
@@ -172,11 +172,11 @@ const AdminTransactions = () => {
                
                <h3 className="text-lg font-black text-center mb-1">Mã QR Thanh Toán</h3>
                <p className="text-xs portal-muted text-center mb-6">
-                 Quét mã để chuyển tiền cho {qrModalTx.type === 'PAYOUT' ? 'chủ quầy' : 'sinh viên'}
+                 Quét mã để chuyển tiền cho {qrModalTx.type === 'PAYOUT' ? 'chủ quầy' : 'khách hàng'}
                </p>
 
                <div className="bg-white p-3 rounded-2xl mb-6 flex justify-center">
-                   {/* Dùng API VietQR gen mã của sinh viên */}
+                   {/* Dùng API VietQR gen mã của khách hàng */}
                    <img 
                       src={`https://img.vietqr.io/image/${qrModalTx.bankInfo.bankName}-${qrModalTx.bankInfo.accountNumber}-compact.png?amount=${qrModalTx.amount}&addInfo=SlotHub thanh toan rut tien&accountName=${qrModalTx.bankInfo.accountName}`} 
                       alt="VietQR Student" 

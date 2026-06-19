@@ -12,10 +12,10 @@ const {
 // Tất cả đều yêu cầu đăng nhập
 router.use(protect);
 
-// [POST] Sinh viên đặt món
+// [POST] Khách hàng đặt món
 router.post('/', createOrder);
 
-// [GET] Sinh viên xem lịch sử đơn hàng
+// [GET] Khách hàng xem lịch sử đơn hàng
 router.get('/my-orders', getMyOrders);
 
 // 🌟 [GET] VENDOR: Lấy danh sách đơn hàng của quầy (ROUTE MỚI)

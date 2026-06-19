@@ -141,7 +141,7 @@ const VendorSettings = () => {
             <User className="text-[#F27124]" size={22} /> Thông tin liên hệ chủ quầy
           </h3>
           <p className="text-sm portal-muted mb-6">
-            Số điện thoại để sinh viên và admin liên hệ khi có đơn hàng hoặc khiếu nại.
+            Số điện thoại để khách hàng và admin liên hệ khi có đơn hàng hoặc khiếu nại.
           </p>
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-center gap-5 p-4 bg-[var(--portal-input-bg)] rounded-2xl border border-[var(--portal-border)]">
@@ -268,7 +268,7 @@ const VendorSettings = () => {
               </div>
             </div>
             <p className="text-xs portal-muted -mt-2 mb-3 leading-relaxed">
-              <strong className="text-[var(--portal-text)]">Giờ mở / đóng cửa hàng ngày</strong> — dùng để sinh viên biết quầy
+              <strong className="text-[var(--portal-text)]">Giờ mở / đóng cửa hàng ngày</strong> — dùng để khách hàng biết quầy
               còn phục vụ trong khung giờ xem menu (khác khung giờ nhận món ở Thanh toán). Nhấn <strong>Lưu</strong> sau khi chỉnh.
             </p>
             <div className="grid grid-cols-2 gap-4">

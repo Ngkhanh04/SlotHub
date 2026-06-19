@@ -7,7 +7,7 @@ import './App.css';
 import './index.css'; 
 
 // ================= IMPORT CÁC TRANG (PAGES) =================
-// Dành cho Sinh viên
+// Dành cho Khách hàng
 import Home from './pages/Home';
 import Orders from './pages/Orders';
 import Checkout from './pages/Checkout'; 
@@ -52,7 +52,7 @@ const InitialRoute = () => {
      return <Navigate to="/vendor" replace />;
   }
 
-  // Mặc định là Sinh viên thì cho vào Trang chủ đặt cơm
+  // Mặc định là Khách hàng thì cho vào Trang chủ đặt cơm
   return <Home />;
 };
 
@@ -62,7 +62,7 @@ const InitialRoute = () => {
 const ConditionalChatWidget = () => {
   const { user } = useContext(AuthContext);
   
-  // Chỉ sinh viên mới được chat với AI
+  // Chỉ khách hàng mới được chat với AI
   if (user && user.role === 'student') {
     return <ChatWidget />;
   }
@@ -82,7 +82,7 @@ function App() {
               {/* Trang chủ - Chứa bộ lọc điều hướng thông minh */}
               <Route path="/" element={<InitialRoute />} />
               
-              {/* CÁC ROUTE CHUNG & SINH VIÊN */}
+              {/* CÁC ROUTE CHUNG & kHÁCH HÀNG */}
               <Route path="/login" element={<Login />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders" element={<Orders />} />
@@ -108,7 +108,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
             
-            {/* Widget AI nằm lơ lửng góc dưới (Đã set điều kiện chỉ hiện cho Sinh viên) */}
+            {/* Widget AI nằm lơ lửng góc dưới (Đã set điều kiện chỉ hiện cho Khách hàng) */}
             <ConditionalChatWidget />
             
           </div>

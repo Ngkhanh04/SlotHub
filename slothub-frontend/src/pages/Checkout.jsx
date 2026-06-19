@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import { 
   ArrowLeft, Wallet, Receipt, Clock, FileText, 
   CheckCircle2, AlertCircle, Loader2, Plus, Minus, Trash2, CreditCard,
-  Sun, CloudSun, Sunset, Moon, Sparkles
+  Sun, CloudSun, Sunset, Moon, Sparkles, QrCode
 } from 'lucide-react';
 import { PICKUP_SLOT_STORAGE_KEY, pickDefaultSlotId } from '../utils/vendorHours';
 import { useLocale } from '../context/LocaleContext';
@@ -100,6 +100,7 @@ const Checkout = () => {
 
     setIsProcessing(true);
     try {
+      // 1. Tạo đơn hàng trong DB
       const res = await api.post('/orders', {
         paymentMethod, 
         deliveryType: 'pickup',
@@ -107,14 +108,16 @@ const Checkout = () => {
         note
       });
 
-      if (res.data.isVNPay) {
-        const paymentRes = await api.post('/payment/create_payment_url', {
+      // 2. Nếu chọn thanh toán PayOS (Mã QR) thì gọi API tạo link thanh toán
+      if (paymentMethod === 'payos') {
+        const paymentRes = await api.post('/payment/create_payment_link', {
             orderId: res.data.order._id
         });
-        window.location.href = paymentRes.data.paymentUrl;
+        window.location.href = paymentRes.data.paymentUrl; // Bắn user sang trang quét QR
         return; 
       }
 
+      // 3. Nếu dùng ví (wallet) thì chạy luồng cũ
       alert("🎉 Đặt hàng bằng Ví thành công! Vui lòng lấy mã QR ở phần Đơn hàng để nhận món nhé.");
       await fetchBalance(); 
       navigate('/orders'); 
@@ -233,47 +236,85 @@ const Checkout = () => {
 
           {/* PHƯƠNG THỨC THANH TOÁN */}
           <div className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-xl shadow-gray-200/40 border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-            <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-5">
+            <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-6">
               <CreditCard className="text-[#F27124]" size={24} /> Phương thức thanh toán
             </h2>
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Ví SlotHub */}
+            
+            <div className="flex flex-col sm:flex-row gap-5">
+              
+              {/* === VÍ SLOTHUB === */}
               <div 
                 onClick={() => setPaymentMethod('wallet')}
-                className={`flex-1 p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-center ${
+                className={`group flex-1 p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-center relative overflow-hidden ${
                   paymentMethod === 'wallet' 
-                  ? 'border-[#F27124] bg-orange-50 shadow-md scale-[1.02]' 
-                  : 'border-gray-100 bg-gray-50 hover:border-orange-200'
+                  ? 'border-[#F27124] bg-gradient-to-br from-orange-50 to-orange-100/40 shadow-lg shadow-orange-500/10 scale-[1.02]' 
+                  : 'border-gray-100 bg-gray-50 hover:border-orange-200 hover:bg-orange-50/50'
                 }`}
               >
-                <div className="flex items-center gap-3 font-black mb-2 text-gray-900 text-lg">
-                  <div className={`p-2 rounded-lg ${paymentMethod === 'wallet' ? 'bg-[#F27124] text-white' : 'bg-gray-200 text-gray-500'}`}>
-                    <Wallet size={20} />
+                <div className="flex items-start gap-4 mb-3 relative z-10">
+                  <div className={`p-3.5 rounded-2xl transition-all duration-300 ${
+                    paymentMethod === 'wallet' 
+                    ? 'bg-gradient-to-br from-[#F27124] to-[#D95F1B] text-white shadow-md shadow-orange-500/30' 
+                    : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#F27124] group-hover:shadow-sm'
+                  }`}>
+                    <Wallet size={24} />
                   </div>
-                  Ví SlotHub
+                  <div className="flex flex-col pt-1">
+                    <span className={`font-black text-lg tracking-tight leading-none mb-1.5 transition-colors ${paymentMethod === 'wallet' ? 'text-[#F27124]' : 'text-gray-900'}`}>
+                      Ví SlotHub
+                    </span>
+                    <span className={`text-xs font-black px-2.5 py-1 rounded-lg w-fit transition-colors ${
+                      isEnoughBalance 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-red-100 text-red-600'
+                    }`}>
+                      Số dư: {balance?.toLocaleString()}đ
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Số dư: <span className={`font-black ${isEnoughBalance ? 'text-green-600' : 'text-red-500'}`}>{balance?.toLocaleString()}đ</span>
-                </p>
+                <p className="text-sm text-gray-500 font-medium relative z-10">Thanh toán 1 chạm, không cần chờ đợi</p>
               </div>
 
-              {/* VNPay */}
+              {/* === VIETQR / PAYOS === */}
               <div 
-                onClick={() => setPaymentMethod('vnpay')}
-                className={`flex-1 p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-center ${
-                  paymentMethod === 'vnpay' 
-                  ? 'border-blue-500 bg-blue-50 shadow-md scale-[1.02]' 
-                  : 'border-gray-100 bg-gray-50 hover:border-blue-200'
+                onClick={() => setPaymentMethod('payos')}
+                className={`group flex-1 p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-center relative overflow-hidden ${
+                  paymentMethod === 'payos' 
+                  ? 'border-[#00B14F] bg-gradient-to-br from-green-50 to-emerald-100/40 shadow-lg shadow-green-500/10 scale-[1.02]' 
+                  : 'border-gray-100 bg-gray-50 hover:border-green-200 hover:bg-green-50/50'
                 }`}
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm w-12 h-10 flex items-center justify-center">
-                     <img src="https://vnpay.vn/s1/vnpay/logo.png" alt="VNPay" className="w-full object-contain" />
+                {/* Ánh sáng lấp lánh trang trí góc cho PayOS */}
+                {paymentMethod === 'payos' && (
+                  <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-[#00B14F]/20 to-transparent rounded-full blur-2xl"></div>
+                )}
+                
+                <div className="flex items-start gap-4 mb-3 relative z-10">
+                  <div className={`p-3.5 rounded-2xl transition-all duration-300 ${
+                    paymentMethod === 'payos' 
+                    ? 'bg-gradient-to-br from-[#00B14F] to-[#008039] text-white shadow-md shadow-green-500/30' 
+                    : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#00B14F] group-hover:shadow-sm'
+                  }`}>
+                    <QrCode size={24} />
                   </div>
-                  <span className="text-blue-600 font-black italic text-xl tracking-wider">VNPAY</span>
+                  <div className="flex flex-col pt-1">
+                    <span className={`font-black text-lg tracking-tight leading-none mb-1.5 transition-colors ${paymentMethod === 'payos' ? 'text-[#00B14F]' : 'text-gray-900'}`}>
+                      Mã VietQR
+                    </span>
+                    {paymentMethod === 'payos' ? (
+                      <span className="text-[10px] uppercase font-black text-[#00B14F] bg-[#00B14F]/15 px-2.5 py-1 rounded-lg w-fit flex items-center gap-1.5">
+                        <Sparkles size={12} className="fill-[#00B14F]/50" /> Tự động duyệt
+                      </span>
+                    ) : (
+                      <span className="text-[10px] uppercase font-black text-gray-400 bg-gray-200/50 px-2.5 py-1 rounded-lg w-fit">
+                        Mọi ngân hàng
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500 font-medium">{t('checkout.vnpayHint')}</p>
+                <p className="text-sm text-gray-500 font-medium relative z-10">Quét mã QR qua app ngân hàng, MoMo...</p>
               </div>
+
             </div>
           </div>
         </div>
@@ -373,14 +414,14 @@ const Checkout = () => {
               className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-lg transition-all shadow-xl ${
                 cart.vendorOpen === false || (paymentMethod === 'wallet' && !isEnoughBalance)
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none border border-gray-200'
-                : paymentMethod === 'vnpay' 
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-blue-500/30 hover:scale-[1.02] active:scale-95'
+                : paymentMethod === 'payos' 
+                  ? 'bg-gradient-to-r from-[#00B14F] to-[#009140] text-white shadow-green-500/30 hover:scale-[1.02] active:scale-95'
                   : 'bg-gradient-to-r from-[#F27124] to-[#ff985e] text-white shadow-orange-500/30 hover:scale-[1.02] active:scale-95'
               }`}
             >
               {isProcessing ? <Loader2 className="animate-spin" size={24} /> : (
                 <>
-                  {cart.vendorOpen === false ? 'QUÁN ĐÃ ĐÓNG CỬA' : paymentMethod === 'vnpay' ? 'THANH TOÁN QUA VNPAY' : (
+                  {cart.vendorOpen === false ? 'QUÁN ĐÃ ĐÓNG CỬA' : paymentMethod === 'payos' ? <><QrCode size={24} /> QUÉT MÃ THANH TOÁN</> : (
                     isEnoughBalance ? <><CheckCircle2 size={24} /> XÁC NHẬN ĐẶT ĐƠN</> : <><Wallet size={24} /> NẠP THÊM TIỀN</>
                   )}
                 </>

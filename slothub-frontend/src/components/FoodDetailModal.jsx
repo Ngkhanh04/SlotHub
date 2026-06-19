@@ -119,7 +119,7 @@ const FoodDetailModal = ({ itemId, initialItem, onClose, onAddedToCart, onItemUp
   const reviews = [...(item?.reviews || [])].reverse().slice(0, 8);
   const canReview = user?.role === 'student' && !hasReviewed;
 
-  const reviewerName = (r) => r.name || r.user?.name || 'Sinh viên';
+  const reviewerName = (r) => r.name || r.user?.name || 'Khách hàng';
 
   return (
     <div
@@ -214,7 +214,7 @@ const FoodDetailModal = ({ itemId, initialItem, onClose, onAddedToCart, onItemUp
                 <ShieldCheck size={14} /> Đảm bảo vệ sinh ATTP
               </p>
 
-              {/* Form đánh giá sinh viên */}
+              {/* Form đánh giá khách hàng */}
               {user?.role === 'student' && (
                 <div className="border-t border-gray-100 pt-4">
                   <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -273,7 +273,7 @@ const FoodDetailModal = ({ itemId, initialItem, onClose, onAddedToCart, onItemUp
               {reviews.length > 0 && (
                 <div className="border-t border-gray-100 pt-3">
                   <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">
-                    Đánh giá từ sinh viên ({item.numReviews || reviews.length})
+                    Đánh giá từ khách hàng ({item.numReviews || reviews.length})
                   </p>
                   <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                     {reviews.map((r, idx) => (

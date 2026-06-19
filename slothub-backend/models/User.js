@@ -73,7 +73,7 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 };
 
 userSchema.index({ role: 1 });
-// Mỗi sinh viên một STK — không trùng (bank + số TK) giữa các user role student
+// Mỗi khách hàng một STK — không trùng (bank + số TK) giữa các user role student
 userSchema.index(
     { 'bankAccount.bankName': 1, 'bankAccount.accountNumber': 1 },
     {

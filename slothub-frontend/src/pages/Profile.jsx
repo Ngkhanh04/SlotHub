@@ -156,7 +156,7 @@ const Profile = () => {
               <ShieldCheck size={20} className="text-green-600" /> Tài khoản ngân hàng của bạn
             </h3>
             <p className="text-xs text-gray-500 mb-4 font-medium leading-relaxed">
-              Mỗi sinh viên phải liên kết <strong>một STK riêng</strong> — không dùng chung với bạn khác. STK này dùng khi rút tiền từ ví SlotHub về ngân hàng của bạn.
+              Mỗi khách hàng phải liên kết <strong>một STK riêng</strong> — không dùng chung với bạn khác. STK này dùng khi rút tiền từ ví SlotHub về ngân hàng của bạn.
             </p>
             
             <div className="space-y-4 p-5 bg-gray-50 rounded-2xl border border-gray-100">
@@ -177,7 +177,7 @@ const Profile = () => {
           ) : (
           <div className="mb-8 p-5 bg-blue-50 rounded-2xl border border-blue-100 text-sm text-gray-600">
             <p className="font-bold text-gray-800 mb-1">Tài khoản ngân hàng</p>
-            <p>Chủ quầy / Admin cấu hình STK trong mục Cài đặt quầy hoặc Cài đặt hệ thống — không dùng chung form sinh viên.</p>
+            <p>Chủ quầy / Admin cấu hình STK trong mục Cài đặt quầy hoặc Cài đặt hệ thống — không dùng chung form khách hàng.</p>
           </div>
           )}
 

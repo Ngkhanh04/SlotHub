@@ -5,7 +5,7 @@ const reviewSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Ai là người đánh giá
     rating: { type: Number, required: true, min: 1, max: 5 }, // Chấm từ 1 đến 5 sao
     comment: { type: String, required: true },
-    // Vẫn giữ tính năng xịn xò: Cho phép sinh viên up ảnh chụp hộp cơm thực tế
+    // Vẫn giữ tính năng xịn xò: Cho phép khách hàng up ảnh chụp hộp cơm thực tế
     images: [{ type: String }] 
 }, { timestamps: true });
 

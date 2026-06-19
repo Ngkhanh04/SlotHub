@@ -79,7 +79,7 @@ const buildChatKnowledgeContext = async () => {
     const noCalorieItems = menuItems.filter((i) => !i.calories || i.calories <= 0);
     if (noCalorieItems.length) {
         contextText += `=== MÓN CHƯA GHI CALORIES (${noCalorieItems.length} món) ===\n`;
-        contextText += 'Khi sinh viên hỏi calo món này, hãy ƯỚC LƯỢNG hợp lý dựa tên/mô tả/danh mục (VD: salad/súp ~150-300, cơm phần ~500-700, đồ chiên ~600-900, trà sữa ~250-450) và nói rõ là "ước lượng".\n\n';
+        contextText += 'Khi khách hàng hỏi calo món này, hãy ƯỚC LƯỢNG hợp lý dựa tên/mô tả/danh mục (VD: salad/súp ~150-300, cơm phần ~500-700, đồ chiên ~600-900, trà sữa ~250-450) và nói rõ là "ước lượng".\n\n';
     }
 
     contextText += '=== CHI TIẾT TỪNG GIAN HÀNG & MENU ===\n';

@@ -19,7 +19,7 @@ const timeShort = (d) => {
 /**
  * @param {'student'|'vendor'|'admin'} mode
  * @param {'light'|'dark'} theme
- * @param {boolean} compact — giao diện nhỏ gọn (sinh viên), không chiếm full màn hình
+ * @param {boolean} compact — giao diện nhỏ gọn (khách hàng), không chiếm full màn hình
  */
 const MessagingCenter = ({ mode = 'student', theme = 'light', initialConversationId = null, compact = false }) => {
   const { user } = useContext(AuthContext);
@@ -223,7 +223,7 @@ const MessagingCenter = ({ mode = 'student', theme = 'light', initialConversatio
             </h3>
             <p className={`text-xs mt-0.5 ${textMuted}`}>
               {mode === 'student' && 'Chat quầy · báo cáo đơn hàng'}
-              {mode === 'vendor' && 'Sinh viên & Ban quản lý'}
+              {mode === 'vendor' && 'Khách hàng & Ban quản lý'}
               {mode === 'admin' && 'Hỗ trợ chủ quầy'}
             </p>
           </div>

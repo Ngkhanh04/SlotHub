@@ -2,7 +2,7 @@ const Notification = require('../models/Notification');
 const Vendor = require('../models/Vendor');
 
 /**
- * Thông báo cho chủ quầy khi sinh viên đặt đơn thành công (đã thanh toán).
+ * Thông báo cho chủ quầy khi khách hàng đặt đơn thành công (đã thanh toán).
  */
 const notifyVendorNewOrder = async (req, order, student) => {
     try {
@@ -10,7 +10,7 @@ const notifyVendorNewOrder = async (req, order, student) => {
         if (!vendor?.owner) return null;
 
         const ref = String(order._id).slice(-6);
-        const who = student?.name || student?.email || 'Sinh viên';
+        const who = student?.name || student?.email || 'Khách hàng';
         const amount = Number(order.totalPrice || 0).toLocaleString('vi-VN');
         const slot = order.pickupSlot || 'Chưa chọn giờ';
 
@@ -37,14 +37,14 @@ const notifyVendorNewOrder = async (req, order, student) => {
 };
 
 /**
- * Thông báo chủ quầy khi sinh viên đánh giá món ăn.
+ * Thông báo chủ quầy khi khách hàng đánh giá món ăn.
  */
 const notifyVendorNewReview = async (req, menuItem, review, student) => {
     try {
         const vendor = await Vendor.findById(menuItem.vendor);
         if (!vendor?.owner) return null;
 
-        const who = student?.name || 'Sinh viên';
+        const who = student?.name || 'Khách hàng';
         const stars = '⭐'.repeat(Math.min(5, Math.max(1, Number(review.rating) || 5)));
         const snippet = (review.comment || '').slice(0, 120);
 

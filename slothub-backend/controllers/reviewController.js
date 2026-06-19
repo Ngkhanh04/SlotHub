@@ -5,10 +5,10 @@ const Order = require('../models/Order'); // Import bảng Order mới
 const createReview = async (req, res) => {
     try {
         const { vendorId, rating, comment, images } = req.body;
-        const userId = req.user.id; // Lấy ID sinh viên từ token đăng nhập
+        const userId = req.user.id; // Lấy ID khách hàng từ token đăng nhập
 
         // KIỂM TRA CHỐNG FAKE REVIEW: 
-        // Sinh viên này đã từng mua và nhận món (Completed) tại gian hàng này chưa?
+        // Khách hàng này đã từng mua và nhận món (Completed) tại gian hàng này chưa?
         const hasCompletedOrder = await Order.findOne({
             user: userId,
             vendor: vendorId,

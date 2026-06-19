@@ -201,7 +201,7 @@ const getDashboardActivity = async (req, res) => {
     }
 };
 
-// 2. [GET] Lấy thông tin Ngân hàng của Admin cho Sinh viên nạp tiền
+// 2. [GET] Lấy thông tin Ngân hàng của Admin cho Khách hàng nạp tiền
 const getAdminBankInfo = async (req, res) => {
     try {
         const admin = await User.findOne({ role: 'admin' });

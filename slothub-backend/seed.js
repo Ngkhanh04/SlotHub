@@ -47,7 +47,7 @@ mongoose.connect(dbUri)
         // --- TẠO GIAN HÀNG MẪU ---
         const vendor = await Vendor.create({
             name: "Canteen FPT - Quầy Bún Chả",
-            description: "Bún chả gia truyền, thơm ngon nức mũi sinh viên",
+            description: "Bún chả gia truyền, thơm ngon nức mũi khách hàng",
             owner: student._id,
             imageUrl: "https://images.unsplash.com/photo-1555126634-323283e090fa?w=800", // Ảnh quán
             openTime: "07:00",

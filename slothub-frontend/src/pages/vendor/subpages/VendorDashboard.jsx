@@ -252,7 +252,7 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
               {recentOrders.map((order) => (
                 <div key={order._id} className="p-4 flex items-center justify-between hover:bg-[var(--portal-surface)]/30">
                   <div>
-                    <p className="font-bold">#{order._id.slice(-6)} · {order.user?.name || 'Sinh viên'}</p>
+                    <p className="font-bold">#{order._id.slice(-6)} · {order.user?.name || 'Khách hàng'}</p>
                     <p className="text-xs portal-muted mt-0.5 flex items-center gap-1">
                       <Clock size={12} />
                       {new Date(order.createdAt).toLocaleString('vi-VN')}

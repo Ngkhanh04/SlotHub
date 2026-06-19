@@ -96,7 +96,7 @@ const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
           </div>
           <div>
             <h2 className="text-2xl font-black tracking-tight">Thông báo quầy</h2>
-            <p className="text-sm portal-muted font-medium">Đơn mới từ sinh viên và cập nhật hệ thống</p>
+            <p className="text-sm portal-muted font-medium">Đơn mới từ khách hàng và cập nhật hệ thống</p>
           </div>
         </div>
         {unreadCount > 0 && (
@@ -115,7 +115,7 @@ const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
           <div className="portal-card border rounded-3xl border border-[var(--portal-border)] p-12 text-center">
             <ShoppingBag size={48} className="mx-auto text-gray-600 mb-4 opacity-40" />
             <p className="portal-muted font-bold">Chưa có thông báo nào</p>
-            <p className="text-sm portal-muted mt-2">Khi sinh viên đặt đơn, bạn sẽ thấy tại đây.</p>
+            <p className="text-sm portal-muted mt-2">Khi khách hàng đặt đơn, bạn sẽ thấy tại đây.</p>
           </div>
         ) : (
           notifications.map((noti) => (

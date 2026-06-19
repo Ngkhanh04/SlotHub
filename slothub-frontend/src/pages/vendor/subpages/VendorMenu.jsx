@@ -307,7 +307,7 @@ const VendorMenu = () => {
                       className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors"
                       placeholder="VD: 450 (để trống nếu chưa rõ)"
                     />
-                    <p className="text-[11px] portal-muted ml-1">Giúp sinh viên & SlotAI gợi ý món healthy. Ước lượng 1 phần ăn.</p>
+                    <p className="text-[11px] portal-muted ml-1">Giúp khách hàng & SlotAI gợi ý món healthy. Ước lượng 1 phần ăn.</p>
                   </div>
 
                   <div className="space-y-1.5 md:col-span-2">
@@ -394,7 +394,7 @@ const VendorMenu = () => {
                     {[1, 2, 3, 4, 5].map((n) => (
                       <Star key={n} size={12} className={n <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-600'} />
                     ))}
-                    <span className="text-sm font-bold ml-2">{r.name || 'Sinh viên'}</span>
+                    <span className="text-sm font-bold ml-2">{r.name || 'Khách hàng'}</span>
                   </div>
                   <p className="text-sm portal-text-secondary leading-relaxed">{r.comment}</p>
                   {r.createdAt && (

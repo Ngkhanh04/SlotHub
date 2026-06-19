@@ -54,7 +54,7 @@ const login = async (req, res) => {
     if (!user) return res.status(401).json({ message: 'Tài khoản không tồn tại trong hệ thống!' });
 
     if (user.role === 'student') {
-        return res.status(403).json({ message: 'CẢNH BÁO: Sinh viên vui lòng đăng nhập bằng nút Google!' });
+        return res.status(403).json({ message: 'CẢNH BÁO: Khách hàng vui lòng đăng nhập bằng nút Google!' });
     }
 
     // 🌟 CHỐT CHẶN: Chặn Vendor chưa được Admin duyệt
@@ -126,7 +126,7 @@ const googleLogin = async (req, res) => {
       user = new User({ name, email, googleId, role: 'student', avatar: picture });
       await user.save();
       await notifyAdmin(req, {
-        title: 'Sinh viên mới (Google)',
+        title: 'Khách hàng mới (Google)',
         message: `${name} (${email}) vừa đăng nhập Google lần đầu`,
         type: 'NEW_USER',
         actionLink: 'users'
@@ -177,7 +177,7 @@ const forgotPassword = async (req, res) => {
     }
 
     if (user.role === 'student') {
-      return res.status(400).json({ message: 'Tài khoản sinh viên đăng nhập bằng Google, không dùng mật khẩu email.' });
+      return res.status(400).json({ message: 'Tài khoản khách hàng đăng nhập bằng Google, không dùng mật khẩu email.' });
     }
 
     if (!PARTNER_RESET_ROLES.includes(user.role)) {

@@ -76,7 +76,7 @@ const CART_POPULATE = {
 // 1. [POST] Sinh viên đặt đồ ăn
 const createOrder = async (req, res) => {
     try {
-        const { paymentMethod, note, pickupSlot } = req.body; 
+        const { paymentMethod, note, pickupSlot } = req.body;
         const userId = req.user.id;
 
         // 🌟 KIỂM TRA KHUNG GIỜ
@@ -111,7 +111,7 @@ const createOrder = async (req, res) => {
 
         for (const cartItem of cart.items) {
             const itemDb = cartItem.menuItem;
-            
+
             if (!itemDb || itemDb.isAvailable === false || itemDb.countInStock < cartItem.quantity) {
                 return res.status(400).json({ message: `Món ${itemDb ? itemDb.name : 'không xác định'} đã hết hoặc không đủ số lượng!` });
             }
@@ -181,7 +181,27 @@ const createOrder = async (req, res) => {
             return res.status(201).json({ message: 'Đặt đơn thành công!', order: newOrder });
         }
 
-        // --- XỬ LÝ VNPay ---
+        // --- XỬ LÝ PAYOS (Thêm mới) ---
+        if (paymentMethod === 'payos') {
+            const newOrder = new Order({
+                user: userId, vendor: firstVendorId, items: processedItems,
+                totalPrice: totalAmount, note, pickupSlot: pickupSlotLabel,
+                status: 'Pending', paymentStatus: 'Unpaid', paymentMethod: 'payos'
+            });
+            await newOrder.save();
+            await logOrderStatus({
+                orderId: newOrder._id,
+                fromStatus: '',
+                toStatus: 'Pending',
+                changedBy: userId,
+                changedByRole: 'student',
+                note: 'Khởi tạo đơn PayOS'
+            });
+            cart.items = []; cart.totalPrice = 0; await cart.save();
+            return res.status(201).json({ message: 'Khởi tạo đơn PayOS', order: newOrder, isPayOS: true });
+        }
+
+        // --- XỬ LÝ VNPay (Giữ lại dự phòng) ---
         if (paymentMethod === 'vnpay') {
             const newOrder = new Order({
                 user: userId, vendor: firstVendorId, items: processedItems,
@@ -201,6 +221,7 @@ const createOrder = async (req, res) => {
             return res.status(201).json({ message: 'Khởi tạo đơn VNPay', order: newOrder, isVNPay: true });
         }
 
+        // Nếu gửi lên phương thức tào lao thì mới báo lỗi
         return res.status(400).json({ message: 'Phương thức thanh toán không hợp lệ!' });
 
     } catch (error) {
@@ -412,7 +433,7 @@ const getVendorOrders = async (req, res) => {
             .populate('user', 'name')
             .populate('items.menuItem', 'name price imageUrl')
             .sort({ createdAt: -1 });
-            
+
         res.status(200).json(orders);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy đơn', error: error.message });

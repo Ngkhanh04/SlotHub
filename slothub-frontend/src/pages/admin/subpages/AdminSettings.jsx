@@ -55,7 +55,7 @@ const AdminSettings = () => {
         <h3 className="text-xl font-black mb-2 flex items-center gap-2">
           <Settings className="text-[#F27124]" /> Cấu hình Ngân hàng Nhận tiền (Quỹ SlotHub)
         </h3>
-        <p className="portal-muted text-sm mb-6">Đây là số tài khoản sẽ được gen thành Mã QR hiển thị cho tất cả Sinh viên khi họ nạp tiền vào hệ thống.</p>
+        <p className="portal-muted text-sm mb-6">Đây là số tài khoản sẽ được gen thành Mã QR hiển thị cho tất cả Khách hàng khi họ nạp tiền vào hệ thống.</p>
         
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="flex flex-col gap-2">

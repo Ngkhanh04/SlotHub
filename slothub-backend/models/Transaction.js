@@ -19,7 +19,7 @@ const transactionSchema = new mongoose.Schema({
     },
     description: { type: String },
 
-    // 🌟 THÊM MỚI: Cấu trúc lưu trữ thông tin ngân hàng nhận tiền của Sinh viên
+    // 🌟 THÊM MỚI: Cấu trúc lưu trữ thông tin ngân hàng nhận tiền của Khách hàng
     bankInfo: {
         bankName: { type: String },       // Tên ngân hàng (Ví dụ: MBBank, Vietcombank)
         accountNumber: { type: String },  // Số tài khoản nhận tiền

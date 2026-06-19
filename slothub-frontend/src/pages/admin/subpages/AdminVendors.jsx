@@ -151,7 +151,7 @@ const AdminVendors = () => {
   };
 
   const handleDemote = async (userId, vendorName) => {
-    if (!window.confirm(`Bạn muốn tước quyền bán hàng của quầy [${vendorName}] và chuyển chủ về Sinh viên?`)) return;
+    if (!window.confirm(`Bạn muốn tước quyền bán hàng của quầy [${vendorName}] và chuyển chủ về Khách hàng?`)) return;
     try {
       await api.put(`/users/${userId}/role`, { role: 'student' });
       fetchData();
@@ -351,7 +351,7 @@ const AdminVendors = () => {
                           type="button"
                           onClick={() => handleDemote(vendor.owner?._id, vendor.name)}
                           className="p-2.5 portal-muted hover:text-orange-400 hover:bg-orange-500/10 rounded-xl transition-all border border-[var(--portal-border)]"
-                          title="Chuyển chủ quầy về Sinh viên"
+                          title="Chuyển chủ quầy về Khách hàng"
                         >
                           <ArrowDownToLine size={18} />
                         </button>

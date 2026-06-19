@@ -175,7 +175,7 @@ const Login = () => {
   };
 
   const partnerTitles = {
-    login: { title: 'Xin chào! 👋', subtitle: 'Nền tảng đặt đồ ăn nhanh chóng & tiện lợi dành cho sinh viên và khách hàng.' },
+    login: { title: 'Xin chào! 👋', subtitle: 'Nền tảng đặt đồ ăn nhanh chóng & tiện lợi dành cho khách hàng.' },
     register: { title: 'Hợp tác cùng SlotHub 🚀', subtitle: 'Đăng ký gian hàng ngay hôm nay để tiếp cận hàng ngàn khách hàng.' },
     forgot: { title: t('login.forgotTitle') || 'Khôi phục mật khẩu', subtitle: t('login.forgotSubtitle') || 'Nhập email để nhận mã xác nhận' },
     reset: { title: t('login.resetTitle') || 'Tạo mật khẩu mới', subtitle: t('login.resetSubtitle') || 'Nhập mã gồm 6 chữ số' }
@@ -223,7 +223,7 @@ const Login = () => {
                   <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="h-6 w-6 mr-3" alt="Google" /> 
                   Đăng nhập bằng tài khoản Google
                 </button>
-                <p className="text-center text-xs text-gray-400 font-medium mt-3">Dành cho Sinh viên & Khách hàng</p>
+                <p className="text-center text-xs text-gray-400 font-medium mt-3">Dành cho Khách hàng</p>
               </div>
 
               <div className="relative mb-8">

@@ -153,7 +153,7 @@ const AdminUsers = () => {
                         'bg-blue-500/10 text-blue-400 border-blue-500/20 focus:border-blue-500'
                       }`}
                     >
-                      <option value="student" className="bg-[var(--portal-surface)] text-white">Sinh viên</option>
+                      <option value="student" className="bg-[var(--portal-surface)] text-white">Khách hàng</option>
                       <option value="vendor" className="bg-[var(--portal-surface)] text-white">Chủ quán (Vendor)</option>
                       <option value="admin" className="bg-[var(--portal-surface)] text-white">Quản trị viên (Admin)</option>
                     </select>

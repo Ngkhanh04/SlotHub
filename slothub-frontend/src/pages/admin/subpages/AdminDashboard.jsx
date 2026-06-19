@@ -153,7 +153,7 @@ const AdminDashboard = ({ onNavigateTab }) => {
       value: `${fmt(statsData.totalDeposits)}đ`,
       hint: statsData.pendingDeposits > 0
         ? `${statsData.pendingDeposits} lệnh nạp đang chờ duyệt`
-        : 'Tiền nạp vào ví sinh viên, không phải thu nhập sàn',
+        : 'Tiền nạp vào ví khách hàng, không phải thu nhập sàn',
       icon: <DollarSign size={24} />,
       color: 'text-blue-400',
       bg: 'bg-blue-500/10',
@@ -161,7 +161,7 @@ const AdminDashboard = ({ onNavigateTab }) => {
   ];
 
   const secondaryStats = [
-    { title: 'Sinh viên', value: fmt(statsData.studentCount), icon: <Users size={22} />, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { title: 'Khách hàng', value: fmt(statsData.studentCount), icon: <Users size={22} />, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { title: 'Gian hàng', value: fmt(statsData.vendorCount), icon: <Store size={22} />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
     { title: 'Giao dịch hôm nay', value: fmt(statsData.todayTxCount), icon: <Activity size={22} />, color: 'text-purple-500', bg: 'bg-purple-500/10' },
   ];

@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-/** Biến động số dư ví sinh viên (bổ sung cho Transaction) */
+/** Biến động số dư ví khách hàng (bổ sung cho Transaction) */
 const studentWalletLogSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     amount: { type: Number, required: true },

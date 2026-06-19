@@ -3,7 +3,7 @@ const Order = require('../models/Order');
 const { sendReportMessage } = require('./messageController');
 const { logAudit } = require('../utils/persistence');
 
-// 1. [POST] Sinh viên gửi Report khiếu nại đơn hàng
+// 1. [POST] Khách hàng gửi Report khiếu nại đơn hàng
 const createReport = async (req, res) => {
     try {
         const { orderId, issueType, description, images } = req.body;
@@ -60,7 +60,7 @@ const resolveReport = async (req, res) => {
             { returnDocument: 'after' }
         ).populate('user', 'email name');
 
-        // (Tùy chọn) Bắn Email thông báo cho sinh viên biết kết quả xử lý
+        // (Tùy chọn) Bắn Email thông báo cho khách hàng biết kết quả xử lý
         // sendEmail(report.user.email, 'Kết quả khiếu nại...', adminNote);
 
         await logAudit({

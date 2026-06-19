@@ -92,7 +92,7 @@ const updateProfile = async (req, res) => {
     } catch (error) {
         if (error.code === 11000) {
             return res.status(400).json({
-                message: 'Số tài khoản này đã được sinh viên khác liên kết. Mỗi sinh viên phải dùng tài khoản ngân hàng riêng.'
+                message: 'Số tài khoản này đã được khách hàng khác liên kết. Mỗi khách hàng phải dùng tài khoản ngân hàng riêng.'
             });
         }
         res.status(500).json({ message: 'Lỗi cập nhật', error: error.message });
