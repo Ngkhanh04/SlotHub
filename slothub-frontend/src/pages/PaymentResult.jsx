@@ -22,19 +22,36 @@ const PaymentResult = () => {
             return;
         }
 
+        // TÁCH URL ĐỂ KIỂM TRA KHÁCH CÓ BẤM HỦY HAY KHÔNG
+        const urlParams = new URLSearchParams(searchParams);
+        const isCancelled = urlParams.get('cancel') === 'true' || urlParams.get('vnp_ResponseCode') === '24';
+
         const verifyPayment = async () => {
             try {
-                // Gửi nguyên cái đuôi URL đó về Backend để nó kiểm tra chữ ký
+                // Vẫn gửi URL về Backend để xử lý Database
+                // Lưu ý: Route này sếp có thể đổi tên thành /payment/return nếu muốn tổng quát
                 const res = await api.get(`/payment/vnpay_return${searchParams}`);
+                
+                if (isCancelled) {
+                    setStatus('failed');
+                    setMessage('Bạn đã hủy thanh toán đơn hàng này.');
+                    return;
+                }
+
                 setStatus('success');
                 setMessage(res.data.message || t('payment.success'));
                 
-                // Tiện tay xóa luôn giỏ hàng ở FE
-                await api.delete('/cart/clear').catch(()=>console.log('Cart clear info'));
+                // Tiện tay xóa luôn giỏ hàng ở FE khi thanh toán thành công
+                await api.delete('/cart/clear').catch(() => console.log('Cart clear info'));
 
             } catch (error) {
                 setStatus('failed');
-                setMessage(error.response?.data?.message || 'Giao dịch thất bại hoặc đã bị hủy!');
+                // Nếu là lỗi do khách bấm hủy thì báo rõ, còn lỗi mạng/hệ thống thì báo mặc định
+                if (isCancelled) {
+                    setMessage('Bạn đã hủy thanh toán giao dịch này.');
+                } else {
+                    setMessage(error.response?.data?.message || 'Giao dịch thất bại hoặc đã bị hủy!');
+                }
             }
         };
 
@@ -44,7 +61,7 @@ const PaymentResult = () => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-[#F9FAFB] p-4 font-sans text-gray-800">
             <div className="absolute top-4 right-4"><LanguageToggle /></div>
-        <div className="bg-white w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
+            <div className="bg-white w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
                 
                 {status === 'loading' && (
                     <>
@@ -79,10 +96,12 @@ const PaymentResult = () => {
                         </div>
                         <h2 className="text-3xl font-black text-gray-800 mb-2">{t('paymentResult.failTitle')}</h2>
                         <p className="text-gray-500 font-medium mb-8">
-                            {message}<br/>{t('paymentResult.failHint')}
+                            {message}<br/><span className="text-sm mt-1 inline-block">{t('paymentResult.failHint')}</span>
                         </p>
                         <button 
-                            onClick={() => navigate('/checkout')}
+                            onClick={() => {
+                                window.location.href = 'http://localhost:3000/#/checkout';
+                            }}
                             className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200 py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-colors"
                         >
                             {t('paymentResult.backCheckout')}

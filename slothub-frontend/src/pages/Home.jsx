@@ -194,6 +194,44 @@ const Home = () => {
     return matchCategory && matchVendor && matchSlot && matchSearch;
   });
 
+  // ========== THUẬT TOÁN NHÓM & SẮP XẾP THEO RATING/SỐ MÓN ==========
+  const groupedItems = useMemo(() => {
+    const groups = {};
+    filteredItems.forEach(item => {
+      const vendorId = item.vendor?._id || item.vendor || 'unknown';
+      const vendorName = item.vendor?.name || 'Gian hàng khác';
+      
+      if (!groups[vendorId]) {
+        groups[vendorId] = {
+          id: vendorId,
+          name: vendorName,
+          items: [],
+          totalReviews: 0, 
+          sumRatings: 0,   
+          itemCount: 0     
+        };
+      }
+      
+      groups[vendorId].items.push(item);
+      groups[vendorId].itemCount += 1;
+      
+      const numReviews = item.numReviews || 0;
+      const rating = item.rating || 0;
+      groups[vendorId].totalReviews += numReviews;
+      groups[vendorId].sumRatings += (rating * numReviews);
+    });
+
+    return Object.values(groups).map(group => {
+      group.avgRating = group.totalReviews > 0 ? (group.sumRatings / group.totalReviews) : 0;
+      return group;
+    }).sort((a, b) => {
+      if (b.avgRating !== a.avgRating) return b.avgRating - a.avgRating;
+      if (b.totalReviews !== a.totalReviews) return b.totalReviews - a.totalReviews;
+      return b.itemCount - a.itemCount;
+    });
+  }, [filteredItems]);
+  // ==================================================================
+
   const closedHiddenCount =
     selectedSlotId && hideClosedForSlot
       ? menuItems.filter(
@@ -202,6 +240,28 @@ const Home = () => {
             i.vendorIsOpen === false
         ).length
       : 0;
+
+  // HÀM MỚI: Kiểm tra giỏ hàng trước khi sang Checkout
+  const handleProceedToCheckout = () => {
+    if (!user) {
+      alert(t('home.loginToOrder'));
+      return navigate('/login');
+    }
+
+    if (cart.items && cart.items.length > 0) {
+      const firstVendorId = cart.items[0].menuItem?.vendor?._id || cart.items[0].menuItem?.vendor;
+      const hasMultipleVendors = cart.items.some(i => {
+        const vId = i.menuItem?.vendor?._id || i.menuItem?.vendor;
+        return String(vId) !== String(firstVendorId);
+      });
+
+      if (hasMultipleVendors) {
+        alert("⛔ LỖI: Giỏ hàng đang chứa món của nhiều quầy khác nhau. Vui lòng xóa bớt để chỉ giữ lại món của 1 quầy!");
+        return; 
+      }
+    }
+    navigate('/checkout');
+  };
 
   if (user && user.role !== 'student') return (
     <div className="flex h-screen w-full items-center justify-center bg-[#1E293B]">
@@ -384,8 +444,8 @@ const Home = () => {
 
           {selectedSlot && closedHiddenCount > 0 && (
             <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 mb-5">
-              {t('home.closedHidden', { count: closedHiddenCount })}{' '}
-              <span className="text-[#F27124]">{selectedSlot.startTime} – {selectedSlot.endTime}</span>.
+              {t('home.closedHidden')}
+              <span className="text-[#F27124]"> {selectedSlot.startTime} – {selectedSlot.endTime}</span>.
               {' '}{t('home.showAll')}.
             </p>
           )}
@@ -409,7 +469,7 @@ const Home = () => {
             <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-gray-200 px-6 py-5 rounded-[2rem] shadow-sm animate-in fade-in duration-300">
                 <p className="text-gray-700 font-medium text-lg">Kết quả cho: <span className="font-black text-[#F27124]">"{searchTerm}"</span></p>
                 <span className="bg-orange-50 text-[#D95F1B] text-sm font-extrabold px-4 py-2 rounded-full mt-2 sm:mt-0 shadow-sm border border-orange-100 flex items-center gap-2">
-                  <Search size={16}/> {filteredItems.length} kết quả
+                  <Search size={16}/> {filteredItems.length} {t('home.resultsCount')}
                 </span>
             </div>
           )}
@@ -419,26 +479,66 @@ const Home = () => {
               {selectedCategory === CATEGORY_ALL ? t('home.menuTitle') : displayCategory(selectedCategory)}
             </h2>
             <span className="text-xs font-bold text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-100">
-              {t('home.dishCount', { count: filteredItems.length })}
-            </span>
+  {filteredItems.length} {t('home.items')}
+</span>
           </div>
 
-          {filteredItems.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-7">
-              {filteredItems.map((item) => (
-                <FoodCard
-                  key={item._id}
-                  item={item}
-                  onAdd={() => handleAddToCart(item._id)}
-                  onViewDetail={() => setDetailItem(item)}
-                />
+          {/* ================= GIAO DIỆN NHÓM THEO QUÁN (VENDOR FRAMES) ================= */}
+          {groupedItems.length > 0 ? (
+            <div className="space-y-10">
+              {groupedItems.map(group => (
+                <div key={group.id} className="bg-white rounded-[2.5rem] p-6 lg:p-8 shadow-sm border border-gray-100 animate-in fade-in duration-500">
+                  
+                  {/* HEADER QUÁN */}
+                  <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-gradient-to-br from-[#F27124] to-[#D95F1B] p-3 rounded-2xl text-white shadow-md shadow-orange-500/20">
+                        <Store size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl md:text-2xl font-black text-gray-900">{group.name}</h3>
+                        
+                        {/* Hiển thị Thông số của Quán */}
+                        <div className="flex items-center flex-wrap gap-2 md:gap-3 mt-1.5">
+                          <span className="text-sm font-bold text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">
+                            {group.items.length} món ăn
+                          </span>
+                          
+                          {group.totalReviews > 0 ? (
+                            <span className="flex items-center gap-1.5 text-sm font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                              <Star size={14} className="fill-amber-500 text-amber-500" />
+                              {group.avgRating.toFixed(1)} 
+                              <span className="text-amber-500/70 font-medium text-xs">({group.totalReviews}+)</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs font-medium text-gray-400">Chưa có đánh giá</span>
+                          )}
+                        </div>
+                        
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LƯỚI MÓN ĂN CỦA QUÁN ĐÓ */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-7">
+                    {group.items.map((item) => (
+                      <FoodCard
+                        key={item._id}
+                        item={item}
+                        onAdd={() => handleAddToCart(item._id)}
+                        onViewDetail={() => setDetailItem(item)}
+                      />
+                    ))}
+                  </div>
+                  
+                </div>
               ))}
             </div>
           ) : (
              <div className="bg-white py-24 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6"><Search size={40} className="text-gray-300" /></div>
                <p className="text-2xl font-black text-gray-800 mb-2">Chưa tìm thấy món ăn!</p>
-               <p className="text-gray-500">
+               <p className="text-gray-500 max-w-md mx-auto">
                  {searchTerm
                    ? `Không có kết quả nào khớp với từ khóa "${searchTerm}"`
                    : closedHiddenCount > 0 && selectedSlot
@@ -475,7 +575,7 @@ const Home = () => {
 
           {selectedSlot && closedHiddenCount > 0 && (
             <p className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-              {t('home.closedHidden', { count: closedHiddenCount })}
+              {t('home.closedHidden')}
             </p>
           )}
 
@@ -486,7 +586,9 @@ const Home = () => {
               <h3 className="font-black text-gray-900 text-xl flex items-center gap-2">
                 <div className="bg-gray-900 text-white p-2 rounded-xl"><ShoppingCart size={20} /></div> {t('home.cart')}
               </h3>
-              <span className="bg-[#F27124] text-white font-black text-xs px-3 py-1.5 rounded-full shadow-md shadow-orange-500/30">{t('home.dishCount', { count: cart.items?.length || 0 })}</span>
+              <span className="bg-[#F27124] text-white font-black text-xs px-3 py-1.5 rounded-full shadow-md shadow-orange-500/30">
+  {cart.items?.length || 0} {t('home.items')}
+</span>
             </div>
             
             <div className="space-y-4 mb-8 max-h-[36vh] overflow-y-auto pr-2 custom-scrollbar relative z-10">
@@ -533,7 +635,7 @@ const Home = () => {
                 </p>
               )}
               <button 
-                  onClick={() => user ? navigate('/checkout') : navigate('/login')}
+                  onClick={handleProceedToCheckout} 
                   disabled={user && ((!cart.items || cart.items.length === 0) || cart.vendorOpen === false)} 
                   className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-gray-900/20 hover:bg-black hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed group"
               >
@@ -556,7 +658,7 @@ const Home = () => {
           </div>
           <button
             type="button"
-            onClick={() => (user ? navigate('/checkout') : navigate('/login'))}
+            onClick={handleProceedToCheckout}
             disabled={user && ((!cart.items?.length) || cart.vendorOpen === false)}
             className="shrink-0 bg-gray-900 text-white px-5 py-3 rounded-xl font-black text-sm disabled:opacity-50"
           >

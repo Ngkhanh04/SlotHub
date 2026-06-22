@@ -76,7 +76,7 @@ const CART_POPULATE = {
 // 1. [POST] Sinh viên đặt đồ ăn
 const createOrder = async (req, res) => {
     try {
-        const { paymentMethod, note, pickupSlot } = req.body;
+        const { paymentMethod, note, pickupSlot } = req.body; 
         const userId = req.user.id;
 
         // 🌟 KIỂM TRA KHUNG GIỜ
@@ -96,6 +96,14 @@ const createOrder = async (req, res) => {
                 .filter(Boolean)
                 .map(String)
         )];
+
+        // 👇 LỚP BẢO VỆ BACKEND: CHẶN ĐẶT 2 QUẦY CÙNG LÚC 👇
+        if (vendorIdsInCart.length > 1) {
+             return res.status(400).json({ 
+                 message: '⛔ Đơn hàng không hợp lệ! Bạn chỉ có thể đặt món ăn trong cùng 1 gian hàng.' 
+             });
+        }
+
         const slotOpts = { slotStart: slot.startTime, slotEnd: slot.endTime };
         for (const vid of vendorIdsInCart) {
             const vendor = await Vendor.findById(vid);
@@ -111,7 +119,7 @@ const createOrder = async (req, res) => {
 
         for (const cartItem of cart.items) {
             const itemDb = cartItem.menuItem;
-
+            
             if (!itemDb || itemDb.isAvailable === false || itemDb.countInStock < cartItem.quantity) {
                 return res.status(400).json({ message: `Món ${itemDb ? itemDb.name : 'không xác định'} đã hết hoặc không đủ số lượng!` });
             }
@@ -433,7 +441,7 @@ const getVendorOrders = async (req, res) => {
             .populate('user', 'name')
             .populate('items.menuItem', 'name price imageUrl')
             .sort({ createdAt: -1 });
-
+            
         res.status(200).json(orders);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy đơn', error: error.message });

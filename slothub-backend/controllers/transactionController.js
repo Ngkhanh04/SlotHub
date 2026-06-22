@@ -7,7 +7,7 @@ const { studentHasBankAccount } = require('../utils/studentBankAccount');
 
 const isVendorRole = (role) => ['vendor', 'vendor_owner'].includes(role);
 
-// 1. [POST] Yêu cầu Nạp / Rút tiền (Khách hàng) hoặc Rút doanh thu (Chủ quầy → PAYOUT)
+// 1. [POST] Yêu cầu Nạp / Rút tiền (Sinh viên) hoặc Rút doanh thu (Chủ quầy → PAYOUT)
 const requestTransaction = async (req, res) => {
     try {
         const { type, amount, description } = req.body;
@@ -42,7 +42,7 @@ const requestTransaction = async (req, res) => {
 
             if (txType === 'WITHDRAW') {
                 if (user.role !== 'student') {
-                    return res.status(400).json({ message: 'Chỉ khách hàng rút tiền qua kênh này.' });
+                    return res.status(400).json({ message: 'Chỉ sinh viên rút tiền qua kênh này.' });
                 }
                 if (!studentHasBankAccount(user)) {
                     return res.status(400).json({
