@@ -72,6 +72,13 @@ const ConditionalChatWidget = () => {
 };
 
 function App() {
+  // Tự động xử lý và làm sạch URL khi PayOS/VNPay redirect chứa query parameters trước dấu hash (#)
+  const search = window.location.search;
+  if (search && (search.includes('orderCode') || search.includes('vnp_'))) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    window.location.hash = `#/payment-result${search}`;
+  }
+
   return (
     <GoogleOAuthProvider clientId="583792662650-dvoaqprusu2f1ueef2rdl8bsb46i5j76.apps.googleusercontent.com">
       <AuthProvider>
