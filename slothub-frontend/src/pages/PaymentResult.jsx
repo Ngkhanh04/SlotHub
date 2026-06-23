@@ -99,9 +99,7 @@ const PaymentResult = () => {
                             {message}<br/><span className="text-sm mt-1 inline-block">{t('paymentResult.failHint')}</span>
                         </p>
                         <button 
-                            onClick={() => {
-                                window.location.href = 'http://localhost:3000/#/checkout';
-                            }}
+                            onClick={() => navigate('/checkout')}
                             className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200 py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-colors"
                         >
                             {t('paymentResult.backCheckout')}

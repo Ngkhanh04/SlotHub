@@ -26,14 +26,19 @@ const createPaymentLink = async (req, res) => {
         order.orderCode = generatedOrderCode; 
         await order.save();
 
+        const CLIENT_URL =
+        process.env.NODE_ENV === 'production'
+            ? 'https://ngkhanh04.github.io/SlotHub-Toivoa'
+            : 'http://localhost:3000';
+
         const requestData = {
             orderCode: generatedOrderCode,
             amount: order.totalPrice, 
             description: `Thanh toan ${generatedOrderCode}`, // Giữ ngắn dưới 25 ký tự
             
             // 🌟 ĐÃ FIX CHUẨN: Trỏ đúng về route /payment-result của FE và đính kèm orderCode
-            returnUrl: `http://localhost:3000/#/payment-result?orderCode=${generatedOrderCode}`, 
-            cancelUrl: `http://localhost:3000/#/payment-result?cancel=true&orderCode=${generatedOrderCode}`
+            returnUrl: `${CLIENT_URL}/#/payment-result?orderCode=${generatedOrderCode}`, 
+            cancelUrl: `${CLIENT_URL}/#/payment-result?cancel=true&orderCode=${generatedOrderCode}`
         };
 
         const paymentLink = await payos.paymentRequests.create(requestData);
@@ -128,12 +133,11 @@ const verifyPaymentReturn = async (req, res) => {
                 console.log(`🔥 ĐANG TIẾN HÀNH HỦY ĐƠN PAYOS CODE: ${orderCode}`);
                 
                 // Đập thẳng vào Database: Đổi từ Pending -> Cancelled
-                const updatedOrder = await Order.findOneAndUpdate(
-                    { orderCode: Number(orderCode) }, 
-                    { status: 'Cancelled', paymentStatus: 'Failed' },
-                    { new: true } // Trả về document mới sau khi update
-                );
-
+            const updatedOrder = await Order.findOneAndUpdate(
+            { orderCode: Number(orderCode) },
+            { status: 'Cancelled', paymentStatus: 'Failed' },
+            { returnDocument: 'after' }
+            );
                 if (updatedOrder) {
                     console.log("✅ HỦY THÀNH CÔNG TRONG DATABASE!");
                 } else {
