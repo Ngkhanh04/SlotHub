@@ -62,7 +62,7 @@ const ChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] font-sans">
+    <div className="fixed bottom-24 lg:bottom-6 right-4 sm:right-6 z-[100] font-sans">
       {/* NÚT MỞ CHAT KHÔNG GIAN */}
       {!isOpen && (
         <button 
@@ -81,7 +81,7 @@ const ChatWidget = () => {
 
       {/* CỬA SỔ CHAT */}
       {isOpen && (
-        <div className="bg-white w-[360px] sm:w-[400px] h-[600px] rounded-[2.5rem] shadow-[0_20px_50px_rgba(242,113,36,0.15)] border border-orange-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-300">
+        <div className="bg-white w-[calc(100vw-2rem)] sm:w-[400px] h-[500px] sm:h-[600px] max-h-[calc(100vh-9rem)] rounded-[2.5rem] shadow-[0_20px_50px_rgba(242,113,36,0.15)] border border-orange-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-300">
           
           {/* HEADER CHAT */}
           <div className="bg-gradient-to-r from-[#F27124] to-[#ff985e] p-5 flex justify-between items-center text-white shrink-0 shadow-md z-10 relative overflow-hidden">

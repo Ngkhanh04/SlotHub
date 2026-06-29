@@ -91,7 +91,7 @@ const Profile = () => {
 
   return (
     <div className="bg-[#F9FAFB] min-h-screen pb-20 font-sans text-gray-800">
-      <header className="bg-white px-8 py-4 shadow-sm sticky top-0 z-40 flex items-center gap-4 border-b border-gray-100 w-full">
+      <header className="bg-white px-4 sm:px-8 py-4 shadow-sm sticky top-0 z-40 flex items-center gap-4 border-b border-gray-100 w-full">
         <button onClick={() => navigate(-1)} className="p-2 bg-gray-50 hover:bg-orange-50 hover:text-[#F27124] rounded-full transition-colors">
           <ArrowLeft size={24} />
         </button>
@@ -102,15 +102,15 @@ const Profile = () => {
       <div className="max-w-2xl mx-auto mt-8 px-4 flex flex-col gap-6">
         
         {/* THÔNG TIN TÓM TẮT */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center gap-6">
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
           <div className="w-20 h-20 bg-gradient-to-br from-[#F27124] to-[#ff985e] rounded-full flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-orange-200 shrink-0">
             {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-black text-gray-800 line-clamp-1">{user.name}</h2>
-            <p className="text-gray-500 font-medium flex items-center gap-1.5 mt-1"><Mail size={14}/> {user.email}</p>
+            <p className="text-gray-500 font-medium flex items-center justify-center sm:justify-start gap-1.5 mt-1"><Mail size={14} className="shrink-0" /> <span className="truncate">{user.email}</span></p>
             {user.phone && (
-              <p className="text-gray-500 font-medium flex items-center gap-1.5 mt-0.5"><Phone size={14}/> {user.phone}</p>
+              <p className="text-gray-500 font-medium flex items-center justify-center sm:justify-start gap-1.5 mt-0.5"><Phone size={14} className="shrink-0" /> <span>{user.phone}</span></p>
             )}
             <span className="inline-block mt-2 bg-orange-100 text-[#F27124] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
               {t('profile.role')}: {user.role}

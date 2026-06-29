@@ -27,7 +27,7 @@ const Checkout = () => {
 
   const slotIcons = [<Sun size={20} />, <CloudSun size={20} />, <Sunset size={20} />, <Moon size={20} />];
   const slotLabelsRaw = t('pickup.slotLabels');
-  const slotLabels = Array.isArray(slotLabelsRaw) ? slotLabelsRaw : ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Tan học'];
+  const slotLabels = Array.isArray(slotLabelsRaw) ? slotLabelsRaw : ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Giờ giải lao'];
 
   useEffect(() => {
     if (!user) return navigate('/login');

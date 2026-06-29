@@ -21,7 +21,7 @@ const PickupSlotFilter = ({
   const { t } = useLocale();
   const ns = variant === 'menuView' ? 'menuView' : 'pickup';
   const slotLabels = t(`${ns}.slotLabels`) || t('pickup.slotLabels');
-  const SLOT_LABELS = Array.isArray(slotLabels) ? slotLabels : ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Tan học'];
+  const SLOT_LABELS = Array.isArray(slotLabels) ? slotLabels : ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Giờ giải lao'];
 
   if (!timeSlots?.length) return null;
 

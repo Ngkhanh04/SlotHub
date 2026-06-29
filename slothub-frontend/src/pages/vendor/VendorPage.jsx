@@ -5,7 +5,7 @@ import { PortalThemeProvider, usePortalTheme } from '../../context/PortalThemeCo
 import api from '../../api/axios';
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Wallet,
-  Settings, LogOut, Bell, ExternalLink, Zap, MessageSquare, ScanLine
+  Settings, LogOut, Bell, ExternalLink, Zap, MessageSquare, ScanLine, Menu, X
 } from 'lucide-react';
 
 import VendorMenu from './subpages/VendorMenu';
@@ -24,6 +24,7 @@ const VendorPageContent = () => {
   const { theme, isDark } = usePortalTheme();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [msgUnread, setMsgUnread] = useState(0);
@@ -88,14 +89,36 @@ const VendorPageContent = () => {
       className="portal-app flex h-screen font-sans overflow-hidden selection:bg-[#F27124] selection:text-white"
       data-portal-theme={theme}
     >
-      <aside className="portal-sidebar w-72 border-r flex flex-col shrink-0 z-30 shadow-2xl relative">
+      {/* Backdrop overlay for mobile */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`portal-sidebar w-72 border-r flex flex-col shrink-0 z-50 shadow-2xl fixed inset-y-0 left-0 lg:static transform ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
+      >
         <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-[#F27124]/10 to-transparent pointer-events-none" />
 
-        <div className="p-7 border-b border-[var(--portal-border-soft)] relative z-10">
-          <BrandLogo size="md" variant={isDark ? 'dark' : 'light'} showTagline={false} />
-          <p className="text-[#F27124] text-[10px] font-black tracking-widest uppercase mt-2 flex items-center gap-1">
-            <Zap size={10} className="fill-[#F27124]" /> Kênh Người Bán
-          </p>
+        <div className="p-7 border-b border-[var(--portal-border-soft)] relative z-10 flex items-center justify-between">
+          <div>
+            <BrandLogo size="md" variant={isDark ? 'dark' : 'light'} showTagline={false} />
+            <p className="text-[#F27124] text-[10px] font-black tracking-widest uppercase mt-2 flex items-center gap-1">
+              <Zap size={10} className="fill-[#F27124]" /> Kênh Người Bán
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg border portal-icon-btn hover:text-red-500 transition-all"
+            aria-label="Close sidebar"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="flex-1 py-6 space-y-1.5 overflow-y-auto custom-scrollbar relative z-10 px-3">
@@ -109,7 +132,10 @@ const VendorPageContent = () => {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setIsSidebarOpen(false);
+                }}
                 className={`portal-menu-btn w-full flex items-center justify-between px-4 py-3.5 rounded-xl font-bold transition-all duration-300 relative group overflow-hidden border-l-4 ${
                   isActive ? 'portal-menu-btn-active' : ''
                 }`}
@@ -135,6 +161,7 @@ const VendorPageContent = () => {
             type="button"
             onClick={() => {
               logout();
+              setIsSidebarOpen(false);
               navigate('/login');
             }}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-black transition-all active:scale-95 border border-red-500/20"
@@ -145,16 +172,26 @@ const VendorPageContent = () => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="portal-header px-8 py-5 flex items-center justify-between border-b shrink-0 z-20 sticky top-0">
-          <div>
-            <h2 className="text-2xl font-black flex items-center gap-2" style={{ color: 'var(--portal-text)' }}>
-              {menuItems.find((m) => m.id === activeTab)?.icon}
-              {menuItems.find((m) => m.id === activeTab)?.label}
-            </h2>
-            <p className="text-xs portal-muted font-medium mt-1 hidden sm:block">
-              {time.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })} ·{' '}
-              {time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-            </p>
+        <header className="portal-header px-4 sm:px-8 py-4 sm:py-5 flex items-center justify-between border-b shrink-0 z-20 sticky top-0">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl border portal-icon-btn hover:text-[#F27124] transition-all"
+              aria-label="Open sidebar"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2" style={{ color: 'var(--portal-text)' }}>
+                <span className="shrink-0">{menuItems.find((m) => m.id === activeTab)?.icon}</span>
+                <span className="truncate">{menuItems.find((m) => m.id === activeTab)?.label}</span>
+              </h2>
+              <p className="text-xs portal-muted font-medium mt-1 hidden md:block">
+                {time.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })} ·{' '}
+                {time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -179,14 +216,15 @@ const VendorPageContent = () => {
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="portal-external-btn flex items-center gap-2 text-sm font-black px-5 py-2.5 rounded-full transition-all duration-300 shadow-sm hover:scale-105 border"
+              className="portal-external-btn flex items-center gap-2 text-sm font-black px-3.5 sm:px-5 py-2.5 rounded-full transition-all duration-300 shadow-sm hover:scale-105 border"
             >
-              VỀ TRANG CHỦ <ExternalLink size={16} />
+              <span className="hidden sm:inline">VỀ TRANG CHỦ</span>
+              <ExternalLink size={16} />
             </button>
           </div>
         </header>
 
-        <div className="portal-main-scroll flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="portal-main-scroll flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar">
           <div key={activeTab} className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both h-full">
             {activeTab === 'dashboard' && (
               <VendorDashboard

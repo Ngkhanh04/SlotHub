@@ -5,7 +5,7 @@ const DEFAULT_SLOTS = [
     { startTime: '09:00', endTime: '09:30', maxCapacity: 50 },
     { startTime: '11:30', endTime: '12:00', maxCapacity: 50 },
     { startTime: '13:00', endTime: '13:30', maxCapacity: 50 },
-    { startTime: '17:00', endTime: '17:30', maxCapacity: 50 },
+    { startTime: '16:00', endTime: '17:30', maxCapacity: 50 },
 ];
 
 const getActiveTimeSlots = async (req, res) => {
@@ -27,10 +27,10 @@ const createTimeSlot = async (req, res) => {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Chỉ Admin mới có quyền tạo Slot!' });
         }
-        
+
         const { startTime, endTime, maxCapacity } = req.body;
         const newSlot = new TimeSlot({ startTime, endTime, maxCapacity });
-        
+
         await newSlot.save();
         res.status(201).json({ message: 'Tạo khung giờ thành công!', slot: newSlot });
     } catch (error) {
