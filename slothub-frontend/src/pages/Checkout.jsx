@@ -330,9 +330,11 @@ const Checkout = () => {
       const orderCount = res.data.orders?.length || 1;
 
       if (paymentMethod === 'payos') {
+        const frontendOrigin = (window.location.origin + window.location.pathname.replace(/\/checkout\/?$/, '')).replace(/\/$/, '');
         const paymentRes = await api.post('/payment/create_payment_link', {
           orderId: res.data.order?._id || res.data.orders?.[0]?._id,
           batchId: res.data.checkoutBatchId,
+          origin: frontendOrigin,
         });
         window.location.href = paymentRes.data.paymentUrl;
         return;

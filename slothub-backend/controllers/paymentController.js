@@ -205,17 +205,11 @@ const createPaymentLink = async (req, res) => {
 
 
 
-        let origin = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:3000';
+        // Tự động nhận diện URL Frontend (1 là localhost:3000, 2 là ngkhanh04.github.io/SlotHub-Toivoa)
+        const isLocal = req.headers.referer && (req.headers.referer.includes('localhost') || req.headers.referer.includes('127.0.0.1'));
+        const origin = req.body.origin || (isLocal ? 'http://localhost:3000' : 'https://ngkhanh04.github.io/SlotHub-Toivoa');
 
-        if (req.headers.referer) {
-            try {
-                const refUrl = new URL(req.headers.referer);
-                const basePath = refUrl.pathname.replace(/\/checkout\/?$/, '');
-                origin = `${refUrl.origin}${basePath}`;
-            } catch (e) {
-                console.error("❌ Lỗi parse referer:", e);
-            }
-        }
+        const cleanOrigin = origin.replace(/\/$/, '');
 
         const requestData = {
 
@@ -225,9 +219,9 @@ const createPaymentLink = async (req, res) => {
 
             description: `Thanh toan ${generatedOrderCode}`,
 
-            returnUrl: `${origin}/?orderCode=${generatedOrderCode}`,
+            returnUrl: `${cleanOrigin}/?orderCode=${generatedOrderCode}`,
 
-            cancelUrl: `${origin}/?cancel=true&orderCode=${generatedOrderCode}`
+            cancelUrl: `${cleanOrigin}/?cancel=true&orderCode=${generatedOrderCode}`
 
         };
 
