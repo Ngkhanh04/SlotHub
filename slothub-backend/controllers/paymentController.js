@@ -205,7 +205,17 @@ const createPaymentLink = async (req, res) => {
 
 
 
-        const origin = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:3000';
+        let origin = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:3000';
+
+        if (req.headers.referer) {
+            try {
+                const refUrl = new URL(req.headers.referer);
+                const basePath = refUrl.pathname.replace(/\/checkout\/?$/, '');
+                origin = `${refUrl.origin}${basePath}`;
+            } catch (e) {
+                console.error("❌ Lỗi parse referer:", e);
+            }
+        }
 
         const requestData = {
 
@@ -215,9 +225,9 @@ const createPaymentLink = async (req, res) => {
 
             description: `Thanh toan ${generatedOrderCode}`,
 
-            returnUrl: `${origin}/payment-result?orderCode=${generatedOrderCode}`,
+            returnUrl: `${origin}/?orderCode=${generatedOrderCode}`,
 
-            cancelUrl: `${origin}/payment-result?cancel=true&orderCode=${generatedOrderCode}`
+            cancelUrl: `${origin}/?cancel=true&orderCode=${generatedOrderCode}`
 
         };
 

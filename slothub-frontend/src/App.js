@@ -76,7 +76,7 @@ function App() {
   // Tự động xử lý và làm sạch URL khi PayOS/VNPay redirect chứa query parameters trước dấu hash (#)
   const search = window.location.search;
   if (search && (search.includes('orderCode') || search.includes('vnp_'))) {
-    window.history.replaceState({}, document.title, '/');
+    window.history.replaceState({}, document.title, window.location.pathname);
     window.location.hash = `#/payment-result${search}`;
   }
 
