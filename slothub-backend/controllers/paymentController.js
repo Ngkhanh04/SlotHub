@@ -205,6 +205,8 @@ const createPaymentLink = async (req, res) => {
 
 
 
+        const origin = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:3000';
+
         const requestData = {
 
             orderCode: generatedOrderCode,
@@ -213,9 +215,9 @@ const createPaymentLink = async (req, res) => {
 
             description: `Thanh toan ${generatedOrderCode}`,
 
-            returnUrl: `http://localhost:3000/payment-result?orderCode=${generatedOrderCode}`,
+            returnUrl: `${origin}/payment-result?orderCode=${generatedOrderCode}`,
 
-            cancelUrl: `http://localhost:3000/payment-result?cancel=true&orderCode=${generatedOrderCode}`
+            cancelUrl: `${origin}/payment-result?cancel=true&orderCode=${generatedOrderCode}`
 
         };
 

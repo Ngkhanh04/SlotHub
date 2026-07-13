@@ -73,7 +73,7 @@ const vi = {
     title: 'Khung giờ xem thực đơn',
     hideClosed: 'Ẩn quầy đóng trong khung này',
     hint: 'Lọc theo giờ quầy có thể phục vụ trong khung này (VD 17:30), không phải giờ đang xem web. Quầy đóng lúc 13:30 vẫn có thể mở buổi 17:30 nếu giờ quầy cho phép. Giờ nhận món chọn ở Thanh toán.',
-    slotLabels: ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Tan học'],
+    slotLabels: ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Giờ giải lao'],
   },
   pickup: {
     label: 'Khung giờ nhận món hôm nay',
@@ -81,7 +81,7 @@ const vi = {
     title: 'Chọn khung giờ nhận món',
     hideClosed: 'Ẩn quầy đóng trong khung này',
     hint: 'Đây là giờ bạn đến quầy lấy món sau khi thanh toán.',
-    slotLabels: ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Tan học'],
+    slotLabels: ['Bữa sáng', 'Giờ cao điểm', 'Nạp năng lượng', 'Giờ giải lao'],
   },
   categories: {
     'Cơm': 'Cơm',
