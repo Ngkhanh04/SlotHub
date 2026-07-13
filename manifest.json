@@ -1,7 +1,7 @@
 {
   "short_name": "SlotHub",
-  "name": "SlotHub — Đặt món FPT Canteen",
-  "description": "Nền tảng đặt đồ ăn canteen FPT — chọn giờ nhận, thanh toán nhanh, quét mã lấy món.",
+  "name": "SlotHub — Đặt món CanTeen",
+  "description": "Nền tảng đặt đồ ăn CanTeen — chọn giờ nhận, thanh toán nhanh, quét mã lấy món.",
   "icons": [
     {
       "src": "favicon.svg",
