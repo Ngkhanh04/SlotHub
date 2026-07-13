@@ -10,6 +10,14 @@ const { getVendorStatus } = require('../utils/vendorHours');
 const { normalizeTimeString, normalizeVendorHours } = require('../utils/timeFormat');
 const { PLATFORM_FEE_RATE } = require('../utils/settleOrderPayment');
 const VENDOR_SHARE = 1 - PLATFORM_FEE_RATE;
+const {
+    getVendorOverview,
+    getVendorMonthlyStats,
+    getVendorYearlyStats,
+    getVendorDailyStats,
+    getVendorBestSelling
+} = require('../utils/vendorAnalytics');
+const { buildVendorExcelBuffer, buildExportFilename } = require('../utils/vendorExcelExport');
 
 // ========================================================
 // PHẦN 1: QUẢN LÝ THÔNG TIN GIAN HÀNG (PROFILE QUÁN)
@@ -18,7 +26,7 @@ const VENDOR_SHARE = 1 - PLATFORM_FEE_RATE;
 const getAllVendors = async (req, res) => {
     try {
         const vendors = await Vendor.find()
-            .select('name openTime closeTime isActive category imageUrl description')
+            .select('name openTime closeTime isActive isPaused pauseReason category imageUrl description')
             .sort({ isActive: -1, name: 1 });
 
         const updatedVendors = vendors.map(vendor => {
@@ -27,7 +35,9 @@ const getAllVendors = async (req, res) => {
             return {
                 ...normalized,
                 isOpen: status.isOpen,
-                statusMessage: status.isOpen ? 'Đang mở cửa 🟢' : 'Hiện đã đóng cửa 🔴'
+                statusMessage: status.isOpen
+                    ? 'Đang mở cửa 🟢'
+                    : (normalized.isPaused ? 'Tạm tắt 🔴' : 'Hiện đã đóng cửa 🔴'),
             };
         });
 
@@ -97,7 +107,17 @@ const getMyStore = async (req, res) => {
         }
         const vendor = await Vendor.findOne({ owner: req.user.id });
         const owner = await User.findById(req.user.id).select('name email phone walletBalance bankAccount role');
-        res.status(200).json({ vendor, owner });
+        const status = vendor ? getVendorStatus(vendor) : null;
+        res.status(200).json({
+            vendor: vendor
+                ? {
+                    ...normalizeVendorHours(vendor),
+                    isOpen: status.isOpen,
+                    statusMessage: status.message,
+                }
+                : null,
+            owner,
+        });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy thông tin gian hàng', error: error.message });
     }
@@ -161,6 +181,49 @@ const updateMyStore = async (req, res) => {
     }
 };
 
+const toggleStorePause = async (req, res) => {
+    try {
+        if (!isVendorRole(req.user.role)) {
+            return res.status(403).json({ message: 'Chỉ chủ quầy mới thao tác được!' });
+        }
+
+        const { isPaused, pauseReason } = req.body;
+        if (typeof isPaused !== 'boolean') {
+            return res.status(400).json({ message: 'Thiếu trạng thái isPaused (true/false).' });
+        }
+
+        const vendor = await Vendor.findOne({ owner: req.user.id });
+        if (!vendor) {
+            return res.status(404).json({ message: 'Bạn chưa có gian hàng!' });
+        }
+
+        if (!isPaused && vendor.isActive === false) {
+            return res.status(403).json({
+                message: 'Quầy đang bị Admin khóa — liên hệ Admin để mở lại.',
+            });
+        }
+
+        vendor.isPaused = isPaused;
+        vendor.pauseReason = isPaused ? String(pauseReason || 'Chủ quầy tạm bận').trim().slice(0, 200) : '';
+        vendor.pausedAt = isPaused ? new Date() : null;
+        await vendor.save();
+
+        const status = getVendorStatus(vendor);
+        return res.status(200).json({
+            message: isPaused
+                ? 'Đã tạm tắt quầy — sinh viên không thể đặt món.'
+                : 'Đã bật lại quầy (trong khung giờ mở cửa sẽ nhận đơn).',
+            vendor: {
+                ...normalizeVendorHours(vendor),
+                isOpen: status.isOpen,
+                statusMessage: status.message,
+            },
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi cập nhật trạng thái quầy', error: error.message });
+    }
+};
+
 const getMyDashboard = async (req, res) => {
     try {
         if (!isVendorRole(req.user.role)) {
@@ -190,7 +253,9 @@ const getMyDashboard = async (req, res) => {
             menuItems,
             recentOrders,
             owner,
-            bestSellingThisMonth
+            bestSellingThisMonth,
+            customersTodayAgg,
+            analyticsOverview
         ] = await Promise.all([
             Order.countDocuments({ vendor: vendorId, createdAt: { $gte: startOfToday } }),
             Order.countDocuments({ vendor: vendorId, status: { $in: ['Pending', 'Processing', 'Ready'] } }),
@@ -249,23 +314,54 @@ const getMyDashboard = async (req, res) => {
                         revenue: 1
                     }
                 }
-            ])
+            ]),
+            Order.aggregate([
+                {
+                    $match: {
+                        vendor: vendorId,
+                        paymentStatus: 'Paid',
+                        status: { $ne: 'Cancelled' },
+                        createdAt: { $gte: startOfToday }
+                    }
+                },
+                { $group: { _id: '$user' } },
+                { $count: 'total' }
+            ]),
+            getVendorOverview(vendorId)
         ]);
 
         const status = getVendorStatus(vendor);
 
         res.status(200).json({
-            vendor: { ...normalizeVendorHours(vendor), isOpen: status.isOpen },
+            vendor: {
+                ...normalizeVendorHours(vendor),
+                isOpen: status.isOpen,
+                isPaused: vendor.isPaused,
+                pauseReason: vendor.pauseReason,
+                statusMessage: status.message,
+            },
             stats: {
                 ordersToday,
                 pendingOrders,
                 revenueToday: revenueTodayAgg[0]?.total || 0,
                 revenueAllTime: revenueAllAgg[0]?.total || 0,
-                vendorShareToday: Math.round((revenueTodayAgg[0]?.total || 0) * 0.95),
+                vendorShareToday: Math.round((revenueTodayAgg[0]?.total || 0) * VENDOR_SHARE),
                 walletBalance: owner?.walletBalance || 0,
                 completedOrders,
-                menuItems
+                menuItems,
+                customersToday: customersTodayAgg[0]?.total || 0,
+                customersThisMonth: analyticsOverview.thisMonth?.customers || 0,
+                customersAllTime: analyticsOverview.allTime?.customers || 0,
+                ordersThisMonth: analyticsOverview.thisMonth?.orders || 0,
+                ordersLastMonth: analyticsOverview.lastMonth?.orders || 0,
+                revenueThisMonth: analyticsOverview.thisMonth?.revenue || 0,
+                revenueLastMonth: analyticsOverview.lastMonth?.revenue || 0,
+                revenueThisYear: analyticsOverview.thisYear?.revenue || 0,
+                revenueLastYear: analyticsOverview.lastYear?.revenue || 0,
+                vendorShareThisMonth: analyticsOverview.thisMonth?.vendorShare || 0,
+                comparisons: analyticsOverview.comparisons
             },
+            analyticsOverview,
             recentOrders,
             bestSellingThisMonth,
             salesPeriod: {
@@ -431,10 +527,100 @@ const getVendorNotifications = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(50);
         const unreadCount = await Notification.countDocuments({ ...filter, isRead: false });
+        const payoutUnreadCount = await Notification.countDocuments({
+            ...filter,
+            isRead: false,
+            type: 'PAYOUT_CONFIRMED',
+        });
 
-        res.status(200).json({ notifications, unreadCount });
+        res.status(200).json({ notifications, unreadCount, payoutUnreadCount });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy thông báo', error: error.message });
+    }
+};
+
+/** Thống kê theo tháng / năm — khách hàng, lượt mua, doanh thu */
+const getVendorAnalytics = async (req, res) => {
+    try {
+        if (!isVendorRole(req.user.role)) {
+            return res.status(403).json({ message: 'Chỉ chủ quầy mới truy cập được!' });
+        }
+
+        const vendor = await Vendor.findOne({ owner: req.user.id });
+        if (!vendor) {
+            return res.status(404).json({ message: 'Bạn chưa thiết lập gian hàng!' });
+        }
+
+        const monthsBack = Math.min(Math.max(parseInt(req.query.months, 10) || 12, 6), 24);
+
+        const [overview, monthly, yearly] = await Promise.all([
+            getVendorOverview(vendor._id),
+            getVendorMonthlyStats(vendor._id, monthsBack),
+            getVendorYearlyStats(vendor._id)
+        ]);
+
+        res.status(200).json({
+            vendorShareRate: VENDOR_SHARE,
+            overview,
+            monthly,
+            yearly,
+            monthsBack
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi lấy thống kê', error: error.message });
+    }
+};
+
+/** Xuất file Excel thống kê (định dạng đẹp, nhiều sheet) */
+const exportVendorExcel = async (req, res) => {
+    try {
+        if (!isVendorRole(req.user.role)) {
+            return res.status(403).json({ message: 'Chỉ chủ quầy mới truy cập được!' });
+        }
+
+        const vendor = await Vendor.findOne({ owner: req.user.id });
+        if (!vendor) {
+            return res.status(404).json({ message: 'Bạn chưa thiết lập gian hàng!' });
+        }
+
+        const months = Math.min(Math.max(parseInt(req.query.months, 10) || 12, 6), 24);
+        const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 7), 90);
+
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const [overview, monthly, yearly, daily, bestSelling] = await Promise.all([
+            getVendorOverview(vendor._id),
+            getVendorMonthlyStats(vendor._id, months),
+            getVendorYearlyStats(vendor._id),
+            getVendorDailyStats(vendor._id, days),
+            getVendorBestSelling(vendor._id, startOfMonth)
+        ]);
+
+        const salesPeriodLabel = `Tháng ${startOfMonth.getMonth() + 1}/${startOfMonth.getFullYear()}`;
+
+        const buffer = await buildVendorExcelBuffer({
+            vendor: { name: vendor.name, category: vendor.category },
+            overview,
+            monthly,
+            yearly,
+            daily,
+            bestSelling,
+            salesPeriodLabel
+        });
+
+        const filename = buildExportFilename(vendor.name);
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+        res.send(Buffer.from(buffer));
+    } catch (error) {
+        console.error('❌ Lỗi xuất Excel:', error);
+        res.status(500).json({ message: 'Lỗi xuất file Excel', error: error.message });
     }
 };
 
@@ -574,7 +760,7 @@ const markVendorNotificationRead = async (req, res) => {
 
 module.exports = { 
     getAllVendors, getVendorDetail, createVendor, updateVendor,
-    getMyStore, updateMyStore, getMyDashboard, getVendorRevenueHistory,
+    getMyStore, updateMyStore, toggleStorePause, getMyDashboard, getVendorRevenueHistory, getVendorAnalytics, exportVendorExcel,
     getMyMenu, addMenuItem, updateMenuItem, deleteMenuItem,
     getVendorNotifications,
     markVendorNotificationRead

@@ -7,12 +7,14 @@ import {
   Image as ImageIcon, FileText, Tag, ShieldCheck, Phone, User, Mail
 } from 'lucide-react';
 import { normalizeTimeString } from '../../../utils/timeFormat';
+import VendorStorePauseToggle from '../../../components/vendor/VendorStorePauseToggle';
 
 const VendorSettings = () => {
   const { user, fetchBalance } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasStore, setHasStore] = useState(false);
+  const [vendorMeta, setVendorMeta] = useState(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -37,6 +39,7 @@ const VendorSettings = () => {
       const res = await api.get('/vendor/my-store');
       const { vendor, owner } = res.data;
       setHasStore(!!vendor);
+      setVendorMeta(vendor || null);
       setForm({
         name: vendor?.name || '',
         description: vendor?.description || '',
@@ -134,6 +137,13 @@ const VendorSettings = () => {
         </div>
       )}
 
+      {hasStore && vendorMeta && (
+        <VendorStorePauseToggle
+          vendor={vendorMeta}
+          onUpdated={(v) => setVendorMeta((prev) => ({ ...prev, ...v }))}
+        />
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Thông tin chủ quầy */}
         <section className="portal-card border rounded-3xl border border-[var(--portal-border)] p-6 md:p-8">
@@ -141,7 +151,7 @@ const VendorSettings = () => {
             <User className="text-[#F27124]" size={22} /> Thông tin liên hệ chủ quầy
           </h3>
           <p className="text-sm portal-muted mb-6">
-            Số điện thoại để khách hàng và admin liên hệ khi có đơn hàng hoặc khiếu nại.
+            Số điện thoại để sinh viên và admin liên hệ khi có đơn hàng hoặc khiếu nại.
           </p>
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-center gap-5 p-4 bg-[var(--portal-input-bg)] rounded-2xl border border-[var(--portal-border)]">
@@ -268,7 +278,7 @@ const VendorSettings = () => {
               </div>
             </div>
             <p className="text-xs portal-muted -mt-2 mb-3 leading-relaxed">
-              <strong className="text-[var(--portal-text)]">Giờ mở / đóng cửa hàng ngày</strong> — dùng để khách hàng biết quầy
+              <strong className="text-[var(--portal-text)]">Giờ mở / đóng cửa hàng ngày</strong> — dùng để sinh viên biết quầy
               còn phục vụ trong khung giờ xem menu (khác khung giờ nhận món ở Thanh toán). Nhấn <strong>Lưu</strong> sau khi chỉnh.
             </p>
             <div className="grid grid-cols-2 gap-4">

@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../api/axios';
 import {
   ShoppingBag, Wallet, UtensilsCrossed, TrendingUp, Clock,
-  Loader2, Store, CircleDot, Package, Bell, ChevronRight, Flame
+  Loader2, Store, CircleDot, Package, Bell, ChevronRight, Flame, Users
 } from 'lucide-react';
 import { formatVendorHoursRange } from '../../../utils/timeFormat';
 import VendorRevenueHistory from '../../../components/vendor/VendorRevenueHistory';
+import VendorPeriodAnalytics from '../../../components/vendor/VendorPeriodAnalytics';
+import VendorExcelExportButton from '../../../components/vendor/VendorExcelExportButton';
+import VendorStorePauseToggle from '../../../components/vendor/VendorStorePauseToggle';
 
 const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
   const [loading, setLoading] = useState(true);
@@ -13,6 +16,7 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
   const [error, setError] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [vendorState, setVendorState] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -22,6 +26,7 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
           api.get('/vendor/notifications'),
         ]);
         setData(dashRes.data);
+        setVendorState(dashRes.data.vendor);
         setNotifications((notiRes.data?.notifications || []).slice(0, 5));
         setUnreadCount(notiRes.data?.unreadCount || 0);
       } catch (err) {
@@ -60,12 +65,23 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
     );
   }
 
-  const { vendor, stats, recentOrders, bestSellingThisMonth, salesPeriod } = data;
+  const { vendor: vendorFromData, stats, recentOrders, bestSellingThisMonth, salesPeriod } = data;
+  const vendor = vendorState || vendorFromData;
   const monthLabel = salesPeriod
     ? `Tháng ${salesPeriod.month}/${salesPeriod.year}`
     : 'Tháng này';
 
+  const revenueMonthChange = stats.comparisons?.revenueMonthChange;
+
   const cards = [
+    {
+      title: 'Khách hôm nay',
+      value: stats.customersToday ?? 0,
+      sub: `${stats.customersThisMonth ?? 0} khách trong tháng`,
+      icon: <Users size={22} />,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+    },
     {
       title: 'Doanh thu hôm nay',
       value: `${stats.revenueToday?.toLocaleString()}đ`,
@@ -75,28 +91,38 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
       bg: 'bg-green-500/10',
     },
     {
-      title: 'Đơn hôm nay',
-      value: stats.ordersToday,
-      sub: `${stats.pendingOrders} đơn đang xử lý`,
+      title: 'Lượt mua tháng này',
+      value: stats.ordersThisMonth ?? 0,
+      sub: `Hôm nay: ${stats.ordersToday ?? 0} · Tháng trước: ${stats.ordersLastMonth ?? 0}`,
       icon: <ShoppingBag size={22} />,
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10',
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+    },
+    {
+      title: 'Doanh thu tháng này',
+      value: `${(stats.revenueThisMonth ?? 0).toLocaleString()}đ`,
+      sub: revenueMonthChange != null
+        ? `So tháng trước: ${revenueMonthChange > 0 ? '+' : ''}${revenueMonthChange}%`
+        : `Tháng trước: ${(stats.revenueLastMonth ?? 0).toLocaleString()}đ`,
+      icon: <Wallet size={22} />,
+      color: 'text-[#F27124]',
+      bg: 'bg-orange-500/10',
     },
     {
       title: 'Ví doanh thu',
       value: `${stats.walletBalance?.toLocaleString()}đ`,
       sub: 'Có thể rút qua Admin duyệt',
       icon: <Wallet size={22} />,
-      color: 'text-[#F27124]',
-      bg: 'bg-orange-500/10',
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/10',
     },
     {
       title: 'Món trên menu',
       value: stats.menuItems,
-      sub: `${stats.completedOrders} đơn đã hoàn thành`,
+      sub: `${stats.customersAllTime ?? 0} khách · ${stats.completedOrders} đơn hoàn thành`,
       icon: <UtensilsCrossed size={22} />,
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10',
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-500/10',
     },
   ];
 
@@ -111,30 +137,48 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="bg-gradient-to-r from-[#1E293B] to-[#0f172a] rounded-3xl border border-[var(--portal-border)] p-6 md:p-8">
-        <div className="flex items-center gap-4">
-          {vendor.imageUrl ? (
-            <img src={vendor.imageUrl} alt="" className="w-16 h-16 rounded-2xl object-cover border border-[var(--portal-border)]" />
-          ) : (
-            <div className="w-16 h-16 rounded-2xl bg-[#F27124]/20 flex items-center justify-center shrink-0">
-              <Store className="text-[#F27124]" size={32} />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <div className="flex items-center gap-4">
+            {vendor.imageUrl ? (
+              <img src={vendor.imageUrl} alt="" className="w-16 h-16 rounded-2xl object-cover border border-[var(--portal-border)]" />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-[#F27124]/20 flex items-center justify-center shrink-0">
+                <Store className="text-[#F27124]" size={32} />
+              </div>
+            )}
+            <div>
+              <h2 className="text-2xl font-black">{vendor.name}</h2>
+              <p className="portal-muted text-sm mt-1 flex items-center gap-2 flex-wrap">
+                <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${vendor.isPaused
+                    ? 'bg-red-500/20 text-red-400'
+                    : vendor.isOpen
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-amber-500/20 text-amber-400'
+                  }`}>
+                  <CircleDot size={10} />{' '}
+                  {vendor.isPaused ? 'Tạm tắt' : vendor.isOpen ? 'Đang mở cửa' : 'Ngoài giờ / đóng'}
+                </span>
+                <span className="portal-muted">· {formatVendorHoursRange(vendor)}</span>
+              </p>
+              <p className="portal-muted text-xs mt-1">
+                Tổng doanh thu: {stats.revenueAllTime?.toLocaleString()}đ · Năm nay: {(stats.revenueThisYear ?? 0).toLocaleString()}đ
+                {stats.revenueLastYear > 0 && ` · Năm trước: ${stats.revenueLastYear.toLocaleString()}đ`}
+                {' · '}{vendor.category}
+              </p>
             </div>
-          )}
-          <div>
-            <h2 className="text-2xl font-black">{vendor.name}</h2>
-            <p className="portal-muted text-sm mt-1 flex items-center gap-2 flex-wrap">
-              <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${vendor.isOpen ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                <CircleDot size={10} /> {vendor.isOpen ? 'Đang mở cửa' : 'Đã đóng cửa'}
-              </span>
-              <span className="portal-muted">· {formatVendorHoursRange(vendor)}</span>
-            </p>
-            <p className="portal-muted text-xs mt-1">
-              Tổng doanh thu đã thanh toán: {stats.revenueAllTime?.toLocaleString()}đ · {vendor.category}
-            </p>
           </div>
+          <VendorExcelExportButton months={12} days={30} label="Xuất báo cáo Excel" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {vendor && (
+        <VendorStorePauseToggle
+          vendor={vendor}
+          onUpdated={(v) => setVendorState((prev) => ({ ...prev, ...v }))}
+        />
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {cards.map((card) => (
           <div key={card.title} className="portal-card border rounded-2xl border border-[var(--portal-border)] p-5 hover:border-[var(--portal-border)] transition-colors">
             <div className={`w-10 h-10 rounded-xl ${card.bg} ${card.color} flex items-center justify-center mb-3`}>
@@ -146,6 +190,8 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
           </div>
         ))}
       </div>
+
+      <VendorPeriodAnalytics />
 
       <VendorRevenueHistory />
 
@@ -165,15 +211,14 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
             {bestSellingThisMonth.map((item, index) => (
               <div key={item.menuItemId || index} className="p-4 flex items-center gap-4 hover:bg-[var(--portal-surface)]/30">
                 <span
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
-                    index === 0
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${index === 0
                       ? 'bg-orange-500/20 text-orange-400'
                       : index === 1
                         ? 'bg-gray-500/20 portal-text-secondary'
                         : index === 2
                           ? 'bg-amber-700/20 text-amber-500'
                           : 'bg-[var(--portal-surface)] portal-muted'
-                  }`}
+                    }`}
                 >
                   {index + 1}
                 </span>
@@ -252,7 +297,7 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
               {recentOrders.map((order) => (
                 <div key={order._id} className="p-4 flex items-center justify-between hover:bg-[var(--portal-surface)]/30">
                   <div>
-                    <p className="font-bold">#{order._id.slice(-6)} · {order.user?.name || 'Khách hàng'}</p>
+                    <p className="font-bold">#{order._id.slice(-6)} · {order.user?.name || 'Sinh viên'}</p>
                     <p className="text-xs portal-muted mt-0.5 flex items-center gap-1">
                       <Clock size={12} />
                       {new Date(order.createdAt).toLocaleString('vi-VN')}

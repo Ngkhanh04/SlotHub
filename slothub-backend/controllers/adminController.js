@@ -7,6 +7,12 @@ const Notification = require('../models/Notification');
 const { getVendorStatus } = require('../utils/vendorHours');
 const { normalizeVendorHours, formatVendorHoursRange } = require('../utils/timeFormat');
 const { logAudit } = require('../utils/persistence');
+const {
+    getCancellationPolicy,
+    saveCancellationPolicy,
+    formatPolicyForDisplay,
+    DEFAULT_POLICY,
+} = require('../utils/cancellationPolicy');
 
 // 1. [GET] Lấy các chỉ số thống kê cho Dashboard
 const getDashboardStats = async (req, res) => {
@@ -201,11 +207,11 @@ const getDashboardActivity = async (req, res) => {
     }
 };
 
-// 2. [GET] Lấy thông tin Ngân hàng của Admin cho Khách hàng nạp tiền
+// 2. [GET] Lấy thông tin Ngân hàng của Admin cho Sinh viên nạp tiền
 const getAdminBankInfo = async (req, res) => {
     try {
         const admin = await User.findOne({ role: 'admin' });
-        
+
         if (!admin) {
             return res.status(404).json({ message: 'Hệ thống chưa có Admin!' });
         }
@@ -281,10 +287,10 @@ const getPendingVendors = async (req, res) => {
     try {
         const vendors = await Vendor.find()
             .populate('owner', 'name email phone avatar isApproved role createdAt');
-        
-        const pendingVendors = vendors.filter(v => 
-            v.owner && 
-            v.owner.isApproved === false && 
+
+        const pendingVendors = vendors.filter(v =>
+            v.owner &&
+            v.owner.isApproved === false &&
             v.owner.role === 'vendor_owner'
         );
 
@@ -306,7 +312,7 @@ const getPendingVendors = async (req, res) => {
 const approveVendor = async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         const user = await User.findByIdAndUpdate(userId, { isApproved: true }, { returnDocument: 'after' });
         if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản chủ quầy!' });
 
@@ -328,7 +334,7 @@ const approveVendor = async (req, res) => {
 const rejectVendor = async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         await User.findByIdAndDelete(userId);
         await Vendor.findOneAndDelete({ owner: userId });
 
@@ -350,7 +356,7 @@ const rejectVendor = async (req, res) => {
 const updateAdminBankInfo = async (req, res) => {
     try {
         const { bankName, accountNumber, accountName } = req.body;
-        
+
         const admin = await User.findById(req.user._id);
         if (!admin) return res.status(404).json({ message: 'Không tìm thấy tài khoản Admin!' });
 
@@ -397,16 +403,47 @@ const markNotificationAsRead = async (req, res) => {
     }
 };
 
-module.exports = { 
+// 9. Chính sách hủy đơn
+const getCancellationPolicyAdmin = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Chỉ Admin' });
+        }
+        const policy = await getCancellationPolicy();
+        return res.json({ policy, display: formatPolicyForDisplay(policy), defaults: DEFAULT_POLICY });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi tải chính sách', error: error.message });
+    }
+};
+
+const updateCancellationPolicyAdmin = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Chỉ Admin' });
+        }
+        const policy = await saveCancellationPolicy(req.body);
+        return res.json({
+            message: 'Đã cập nhật chính sách hủy đơn',
+            policy,
+            display: formatPolicyForDisplay(policy),
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi lưu chính sách', error: error.message });
+    }
+};
+
+module.exports = {
     getDashboardStats,
     getCashFlowChart,
     getDashboardActivity,
-    getAdminBankInfo, 
+    getAdminBankInfo,
     getAllVendorsAdmin,
     getPendingVendors,
     approveVendor,
     rejectVendor,
     updateAdminBankInfo,
-    getAdminNotifications,    // 🌟 Xuất hàm thông báo
-    markNotificationAsRead    // 🌟 Xuất hàm thông báo
+    getAdminNotifications,
+    markNotificationAsRead,
+    getCancellationPolicyAdmin,
+    updateCancellationPolicyAdmin,
 };

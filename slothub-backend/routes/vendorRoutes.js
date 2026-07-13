@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middlewares/authMiddleware');
-const { 
+const {
     getAllVendors, getVendorDetail, createVendor, updateVendor,
-    getMyStore, updateMyStore, getMyDashboard, getVendorRevenueHistory,
+    getMyStore, updateMyStore, toggleStorePause, getMyDashboard, getVendorAnalytics, exportVendorExcel, getVendorRevenueHistory,
     getMyMenu, addMenuItem, updateMenuItem, deleteMenuItem,
     getVendorNotifications,
     markVendorNotificationRead
@@ -14,7 +14,10 @@ const {
 // ==============================================
 router.get('/my-store', protect, getMyStore);
 router.put('/my-store', protect, updateMyStore);
+router.put('/my-store/pause', protect, toggleStorePause);
 router.get('/dashboard', protect, getMyDashboard);
+router.get('/analytics', protect, getVendorAnalytics);
+router.get('/export-excel', protect, exportVendorExcel);
 router.get('/revenue-history', protect, getVendorRevenueHistory);
 router.get('/notifications', protect, getVendorNotifications);
 router.put('/notifications/:id/read', protect, markVendorNotificationRead);
@@ -31,7 +34,7 @@ router.get('/', getAllVendors); // Public: Ai cũng xem được DS gian hàng
 router.post('/', protect, createVendor); // Protect: Đăng ký mở quán
 
 // Lấy chi tiết 1 quán (Public)
-router.get('/:id', getVendorDetail); 
+router.get('/:id', getVendorDetail);
 
 // Cập nhật thông tin quán (Protect)
 router.put('/:id', protect, updateVendor);

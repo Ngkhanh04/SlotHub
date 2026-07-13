@@ -39,7 +39,7 @@ const BrandLogo = ({
         </span>
         {showTagline && (
           <span className={`${s.tag} font-bold uppercase tracking-[0.2em] mt-1 ${tagClass}`}>
-            FPT Canteen
+            CanTeen
           </span>
         )}
       </div>

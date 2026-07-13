@@ -57,7 +57,7 @@ const FoodCard = ({ item, onAdd, onViewDetail }) => {
           <p className={`text-xs flex items-center gap-1.5 font-bold mb-4 w-fit px-2.5 py-1 rounded-lg border ${
             isVendorClosedInSlot ? 'text-red-600 bg-red-50 border-red-100' : isVendorClosedNow ? 'text-amber-700 bg-amber-50 border-amber-100' : 'text-gray-500 bg-gray-50 border-gray-100'
           }`}>
-            <Store size={12} className={isVendorClosedInSlot ? 'text-red-500' : 'text-[#F27124]'}/> {item.vendor?.name || 'FPT Canteen'}
+            <Store size={12} className={isVendorClosedInSlot ? 'text-red-500' : 'text-[#F27124]'}/> {item.vendor?.name || 'CanTeen'}
             {item.vendor?.openTime && (
               <span className="font-medium"> · {item.vendor.openTime}–{item.vendor.closeTime}</span>
             )}

@@ -3,6 +3,7 @@ import api from '../../api/axios';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import VendorExcelExportButton from './VendorExcelExportButton';
 import { CalendarDays, Loader2, TrendingUp, Receipt } from 'lucide-react';
 
 const fmt = (n) => (Number(n) || 0).toLocaleString('vi-VN');
@@ -68,21 +69,23 @@ const VendorRevenueHistory = ({ compact = false }) => {
             Xem lại doanh thu các ngày trước (đơn đã thanh toán)
           </p>
         </div>
-        <div className="flex gap-1 bg-[var(--portal-input-bg)]/80 p-1 rounded-xl border border-[var(--portal-border)]">
-          {DAY_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setDays(opt.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                days === opt.value
-                  ? 'bg-[#F27124] text-white'
-                  : 'portal-muted hover:text-[var(--portal-text)]'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 bg-[var(--portal-input-bg)]/80 p-1 rounded-xl border border-[var(--portal-border)]">
+            {DAY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setDays(opt.value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${days === opt.value
+                    ? 'bg-[#F27124] text-white'
+                    : 'portal-muted hover:text-[var(--portal-text)]'
+                  }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <VendorExcelExportButton months={12} days={days} variant="outline" label="Xuất Excel" />
         </div>
       </div>
 

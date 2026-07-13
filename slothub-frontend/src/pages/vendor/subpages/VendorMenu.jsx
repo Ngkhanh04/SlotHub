@@ -6,7 +6,7 @@ const VendorMenu = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // States cho Modal (Popup Thêm/Sửa)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -18,6 +18,10 @@ const VendorMenu = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
+  // States cho tính năng AI quét calo
+  const [isEstimatingCalories, setIsEstimatingCalories] = useState(false);
+  const [calorieExplanation, setCalorieExplanation] = useState('');
+
   const categories = ['Cơm', 'Bún/Phở', 'Đồ ăn vặt', 'Đồ uống', 'Tráng miệng'];
 
   const resetImagePicker = () => {
@@ -28,6 +32,8 @@ const VendorMenu = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     resetImagePicker();
+    setCalorieExplanation('');
+    setIsEstimatingCalories(false);
   };
 
   // 1. Fetch dữ liệu thực đơn
@@ -46,10 +52,12 @@ const VendorMenu = () => {
 
   // 2. Mở Modal Thêm mới hoặc Chỉnh sửa
   const openModal = (item = null) => {
+    setCalorieExplanation('');
+    setIsEstimatingCalories(false);
     if (item) {
       setEditingItem(item);
-      setFormData({ 
-        name: item.name, price: item.price, description: item.description || '', 
+      setFormData({
+        name: item.name, price: item.price, description: item.description || '',
         imageUrl: item.imageUrl, category: item.category, isAvailable: item.isAvailable,
         calories: item.calories != null ? String(item.calories) : ''
       });
@@ -84,6 +92,43 @@ const VendorMenu = () => {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return uploadRes.data.imageUrl;
+  };
+
+  // Tự động phân tích ảnh và tính toán calo bằng AI
+  const handleEstimateCalories = async () => {
+    const imageUrlFromForm = formData.imageUrl?.trim();
+    if (!imageFile && !imageUrlFromForm) {
+      return alert('Vui lòng chọn ảnh món ăn hoặc điền link ảnh trước khi quét calo!');
+    }
+
+    setIsEstimatingCalories(true);
+    setCalorieExplanation('');
+    try {
+      let imageUrl = imageUrlFromForm;
+      if (imageFile) {
+        imageUrl = await uploadDishImage();
+        // Cập nhật lại form data để không phải upload lại khi lưu món
+        setFormData(prev => ({ ...prev, imageUrl }));
+        setImageFile(null); // Đã lưu online, giải phóng file cục bộ
+      }
+
+      const res = await api.post('/menuitems/estimate-calories', {
+        imageUrl,
+        name: formData.name?.trim(),
+        description: formData.description?.trim()
+      });
+      if (res.data?.success) {
+        setFormData(prev => ({ ...prev, calories: String(res.data.calories) }));
+        setCalorieExplanation(res.data.explanation);
+      }
+    } catch (error) {
+      console.error("Lỗi quét calo bằng AI:", error);
+      const serverMsg = error.response?.data?.message;
+      const errorDetail = error.response?.data?.error;
+      alert(serverMsg ? `${serverMsg}${errorDetail ? `\nChi tiết: ${errorDetail}` : ''}` : `Có lỗi xảy ra khi quét calo món ăn!\nChi tiết: ${error.message}`);
+    } finally {
+      setIsEstimatingCalories(false);
+    }
   };
 
   // 3. Xử lý Lưu món (Thêm hoặc Sửa)
@@ -144,11 +189,11 @@ const VendorMenu = () => {
 
   const filteredMenu = menuItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  if (loading) return <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin text-[#F27124]" size={40}/></div>;
+  if (loading) return <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin text-[#F27124]" size={40} /></div>;
 
   return (
     <div className="animate-in fade-in duration-300">
-      
+
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
@@ -157,16 +202,16 @@ const VendorMenu = () => {
           </h2>
           <p className="text-sm portal-muted mt-1">Gian hàng của bạn đang có {menuItems.length} món ăn.</p>
         </div>
-        
+
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
-            <input 
-              type="text" placeholder="Tìm kiếm món ăn..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
+            <input
+              type="text" placeholder="Tìm kiếm món ăn..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="w-full portal-card border-[var(--portal-border)] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[var(--portal-text)] focus:border-[#F27124] outline-none"
             />
             <Search className="absolute left-3.5 top-2.5 portal-muted" size={16} />
           </div>
-          <button 
+          <button
             onClick={() => openModal()}
             className="bg-[#F27124] hover:bg-[#D95F1B] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95 shrink-0"
           >
@@ -179,7 +224,7 @@ const VendorMenu = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredMenu.map(item => (
           <div key={item._id} className="portal-card border rounded-[1.5rem] border border-[var(--portal-border)] overflow-hidden group hover:border-[var(--portal-border)] transition-all flex flex-col">
-            
+
             {/* Ảnh món ăn */}
             <div className="h-48 bg-[var(--portal-surface)] relative overflow-hidden">
               {item.imageUrl ? (
@@ -188,13 +233,12 @@ const VendorMenu = () => {
                 <div className="flex h-full items-center justify-center text-gray-600"><ImageIcon size={40} /></div>
               )}
               {/* Nút Bật/Tắt nhanh */}
-              <button 
+              <button
                 onClick={() => toggleAvailability(item._id, item.isAvailable)}
-                className={`absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 backdrop-blur-md border shadow-lg transition-all hover:scale-105 ${
-                  item.isAvailable ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/40' : 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/40'
-                }`}
+                className={`absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 backdrop-blur-md border shadow-lg transition-all hover:scale-105 ${item.isAvailable ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/40' : 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/40'
+                  }`}
               >
-                {item.isAvailable ? <><Power size={14}/> Đang bán</> : <><PowerOff size={14}/> Hết hàng</>}
+                {item.isAvailable ? <><Power size={14} /> Đang bán</> : <><PowerOff size={14} /> Hết hàng</>}
               </button>
             </div>
 
@@ -236,7 +280,7 @@ const VendorMenu = () => {
                   </button>
                 )}
               </div>
-              
+
               <div className="flex gap-2 mt-auto pt-4 border-t border-[var(--portal-border)]">
                 <button onClick={() => openModal(item)} className="flex-1 bg-[var(--portal-surface)] hover:bg-blue-500/20 portal-text-secondary hover:text-blue-400 py-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-[var(--portal-border)] hover:border-blue-500/30">
                   <Edit2 size={16} /> Sửa
@@ -250,45 +294,45 @@ const VendorMenu = () => {
           </div>
         ))}
         {filteredMenu.length === 0 && (
-            <div className="col-span-full py-20 text-center portal-muted portal-card border rounded-3xl border border-dashed border-[var(--portal-border)]">
-                <UtensilsCrossed size={48} className="mx-auto mb-4 opacity-20" />
-                <p className="text-lg font-medium">Chưa có món ăn nào trong thực đơn.</p>
-            </div>
+          <div className="col-span-full py-20 text-center portal-muted portal-card border rounded-3xl border border-dashed border-[var(--portal-border)]">
+            <UtensilsCrossed size={48} className="mx-auto mb-4 opacity-20" />
+            <p className="text-lg font-medium">Chưa có món ăn nào trong thực đơn.</p>
+          </div>
         )}
       </div>
 
       {/* ================= MODAL THÊM / SỬA MÓN (ĐÃ FIX SCROLL) ================= */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          
+
           {/* Cập nhật container: Thêm max-h-[90vh] và flex-col */}
           <div className="portal-card border rounded-[2rem] border border-[var(--portal-border)] w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            
+
             {/* HEADER: Thêm shrink-0 để ghim cứng ở trên */}
             <div className="p-6 border-b border-[var(--portal-border)] flex justify-between items-center bg-[var(--portal-table-head)] shrink-0">
               <h3 className="text-xl font-black">{editingItem ? 'Chỉnh sửa Món ăn' : 'Thêm Món mới'}</h3>
-              <button type="button" onClick={closeModal} className="portal-muted hover:text-[var(--portal-text)] p-1 bg-[var(--portal-surface)] rounded-full hover:bg-[var(--portal-surface-hover)] transition-colors"><X size={20}/></button>
+              <button type="button" onClick={closeModal} className="portal-muted hover:text-[var(--portal-text)] p-1 bg-[var(--portal-surface)] rounded-full hover:bg-[var(--portal-surface-hover)] transition-colors"><X size={20} /></button>
             </div>
 
             {/* FORM: Ôm trọn phần ruột và footer, chiếm không gian còn lại */}
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-              
+
               {/* BODY FORM: Thêm overflow-y-auto để cuộn mượt mà */}
               <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5 md:col-span-2">
                     <label className="text-sm font-bold portal-text-secondary ml-1">Tên món ăn <span className="text-red-500">*</span></label>
-                    <input type="text" required value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: Cơm Tấm Sườn Bì" />
+                    <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: Cơm Tấm Sườn Bì" />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-sm font-bold portal-text-secondary ml-1">Giá bán (VNĐ) <span className="text-red-500">*</span></label>
-                    <input type="number" required min="0" value={formData.price} onChange={e=>setFormData({...formData, price: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: 35000" />
+                    <input type="number" required min="0" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors" placeholder="VD: 35000" />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-sm font-bold portal-text-secondary ml-1">Danh mục</label>
-                    <select value={formData.category} onChange={e=>setFormData({...formData, category: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors cursor-pointer">
+                    <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors cursor-pointer">
                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
@@ -297,16 +341,36 @@ const VendorMenu = () => {
                     <label className="text-sm font-bold portal-text-secondary ml-1 flex items-center gap-1.5">
                       <Flame size={14} className="text-emerald-400" /> Calo (kcal)
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="5000"
-                      step="1"
-                      value={formData.calories}
-                      onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
-                      className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors"
-                      placeholder="VD: 450 (để trống nếu chưa rõ)"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="5000"
+                        step="1"
+                        value={formData.calories}
+                        onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                        className="flex-1 bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors"
+                        placeholder="VD: 450"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleEstimateCalories}
+                        disabled={isEstimatingCalories || (!imagePreview && !formData.imageUrl?.trim())}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold text-xs px-4 rounded-xl flex items-center gap-1 transition-all shrink-0 shadow-md active:scale-95"
+                        title="Tự động phân tích ảnh và điền số calo ước lượng"
+                      >
+                        {isEstimatingCalories ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          'AI Quét Calo'
+                        )}
+                      </button>
+                    </div>
+                    {calorieExplanation && (
+                      <p className="text-[11px] text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl mt-1.5 font-medium leading-relaxed">
+                        💡 <strong>Phân tích từ ảnh:</strong> {calorieExplanation}
+                      </p>
+                    )}
                     <p className="text-[11px] portal-muted ml-1">Giúp khách hàng & SlotAI gợi ý món healthy. Ước lượng 1 phần ăn.</p>
                   </div>
 
@@ -353,7 +417,7 @@ const VendorMenu = () => {
 
                   <div className="space-y-1.5 md:col-span-2">
                     <label className="text-sm font-bold portal-text-secondary ml-1">Mô tả món ăn</label>
-                    <textarea rows="2" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors resize-none" placeholder="Mô tả ngắn gọn nguyên liệu..."></textarea>
+                    <textarea rows="2" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full bg-[var(--portal-input-bg)] border border-[var(--portal-border)] rounded-xl px-4 py-3 text-[var(--portal-text)] focus:border-[#F27124] outline-none transition-colors resize-none" placeholder="Mô tả ngắn gọn nguyên liệu..."></textarea>
                   </div>
                 </div>
               </div>

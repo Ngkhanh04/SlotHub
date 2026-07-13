@@ -36,7 +36,18 @@ const getVendorStatus = (vendor, options = {}) => {
     if (vendor.isActive === false) {
         return {
             isOpen: false,
-            message: `Quầy "${vendor.name}" tạm ngưng nhận đơn.`
+            message: `Quầy "${vendor.name}" tạm ngưng nhận đơn (Admin).`,
+            closedBy: 'admin',
+        };
+    }
+    if (vendor.isPaused) {
+        const reason = vendor.pauseReason?.trim();
+        return {
+            isOpen: false,
+            message: reason
+                ? `Quầy "${vendor.name}" tạm tắt: ${reason}`
+                : `Quầy "${vendor.name}" tạm tắt nhận đơn — chủ quầy đang bận.`,
+            closedBy: 'vendor_pause',
         };
     }
     const isOpen = slotStart && slotEnd

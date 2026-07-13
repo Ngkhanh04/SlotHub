@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Store, UserRound, Loader2, KeyRound, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
 import { AuthContext } from '../context/AuthContext';
-import api from '../api/axios'; 
+import api from '../api/axios';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useLocale } from '../context/LocaleContext';
 import LanguageToggle from '../components/LanguageToggle';
@@ -16,7 +16,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   /** login | register | forgot | reset */
   const [partnerView, setPartnerView] = useState('login');
   const [resetToken, setResetToken] = useState('');
@@ -32,7 +32,7 @@ const Login = () => {
   });
 
   const navigate = useNavigate();
-  const { setUser } = useContext(AuthContext); 
+  const { setUser } = useContext(AuthContext);
 
   const handleLoginSuccess = (data) => {
     const { token, user } = data;
@@ -93,9 +93,9 @@ const Login = () => {
         vendorName: regData.vendorName,
         email: regData.regEmail,
         password: regData.regPassword,
-        role: 'vendor_owner' 
+        role: 'vendor_owner'
       });
-      
+
       setSuccessMessage('🎉 Đăng ký mở quầy thành công! Yêu cầu của bạn đang chờ Admin phê duyệt.');
       setTimeout(() => {
         setPartnerView('login');
@@ -187,21 +187,21 @@ const Login = () => {
 
   return (
     <div className="flex min-h-screen bg-[#FAFAFA] font-sans selection:bg-[#F27124] selection:text-white relative overflow-hidden">
-      
+
       {/* Background Orbs xịn xò */}
       <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-gradient-to-br from-[#F27124]/20 to-orange-400/5 blur-[120px] rounded-full pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[35%] w-[600px] h-[600px] bg-gradient-to-tl from-blue-500/10 to-transparent blur-[150px] rounded-full pointer-events-none"></div>
 
       {/* Nửa Trái - Form Đăng Nhập */}
       <div className="w-full lg:w-[50%] xl:w-[45%] flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 overflow-y-auto">
-        
+
         {/* Toggle Ngôn Ngữ */}
         <div className="absolute top-6 right-6 z-20 bg-white/50 backdrop-blur-md rounded-full border border-gray-200/50 shadow-sm px-2 py-1 hover:bg-white transition-all cursor-pointer">
           <LanguageToggle />
         </div>
 
         <div className="w-full max-w-[400px] animate-in fade-in slide-in-from-bottom-8 duration-700 py-10">
-          
+
           <Link to="/" className="inline-block mb-10 transform hover:scale-105 transition-transform">
             <BrandLogo size="lg" />
           </Link>
@@ -214,18 +214,18 @@ const Login = () => {
               {pageSubtitle}
             </p>
           </div>
-          
+
           {/* Thông báo Lỗi / Thành công (Style tối giản) */}
           {error && (
             <div className="bg-red-50/80 backdrop-blur-sm border-l-4 border-red-500 text-red-700 p-4 rounded-r-2xl mb-6 text-sm font-bold flex items-start shadow-sm animate-in shake">
-               <ShieldCheck size={18} className="mr-3 shrink-0 mt-0.5 text-red-500" /> 
-               <span className="leading-relaxed">{error}</span>
+              <ShieldCheck size={18} className="mr-3 shrink-0 mt-0.5 text-red-500" />
+              <span className="leading-relaxed">{error}</span>
             </div>
           )}
 
           {successMessage && (
             <div className="bg-emerald-50/80 backdrop-blur-sm border-l-4 border-emerald-500 text-emerald-700 p-4 rounded-r-2xl mb-6 text-sm font-bold flex items-start shadow-sm animate-in fade-in slide-in-from-top-2">
-              <CheckCircle2 size={18} className="mr-3 shrink-0 mt-0.5 text-emerald-500" /> 
+              <CheckCircle2 size={18} className="mr-3 shrink-0 mt-0.5 text-emerald-500" />
               <span className="leading-relaxed">{successMessage}</span>
             </div>
           )}
@@ -233,17 +233,17 @@ const Login = () => {
           {/* ================= VIEW: ĐĂNG NHẬP ================= */}
           {partnerView === 'login' && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-              
+
               {/* Nút Đăng nhập Google (Dành cho Sinh Viên) */}
               <div className="mb-8">
-                <button 
-                  type="button" 
-                  onClick={() => loginWithGoogle()} 
-                  disabled={isLoading} 
+                <button
+                  type="button"
+                  onClick={() => loginWithGoogle()}
+                  disabled={isLoading}
                   className="group relative w-full flex justify-center items-center py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-black text-gray-700 transition-all duration-300 disabled:opacity-50 hover:border-gray-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] active:scale-[0.98] overflow-hidden"
                 >
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-full duration-700 ease-in-out"></div>
-                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="h-5 w-5 mr-3 transition-transform group-hover:scale-110" alt="Google" /> 
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="h-5 w-5 mr-3 transition-transform group-hover:scale-110" alt="Google" />
                   Tiếp tục với Google
                 </button>
                 <p className="text-center text-[11px] text-gray-400 font-bold mt-3 uppercase tracking-wider">Đăng nhập bằng GmailGoogle</p>
@@ -263,13 +263,13 @@ const Login = () => {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#F27124] transition-colors duration-300" />
                     </div>
-                    <input 
-                      type="email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:bg-white focus:border-[#F27124] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-medium text-sm text-gray-800 placeholder-gray-400 shadow-sm" 
-                      placeholder="admin@vendor.com" 
-                      required 
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:bg-white focus:border-[#F27124] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-medium text-sm text-gray-800 placeholder-gray-400 shadow-sm"
+                      placeholder="admin@vendor.com"
+                      required
                     />
                   </div>
                 </div>
@@ -285,13 +285,13 @@ const Login = () => {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F27124] transition-colors duration-300" />
                     </div>
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      className="w-full pl-12 pr-12 py-3.5 bg-white border border-gray-200 rounded-2xl focus:bg-white focus:border-[#F27124] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-medium text-sm text-gray-800 placeholder-gray-400 shadow-sm tracking-wide" 
-                      placeholder="••••••••" 
-                      required 
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-12 pr-12 py-3.5 bg-white border border-gray-200 rounded-2xl focus:bg-white focus:border-[#F27124] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-medium text-sm text-gray-800 placeholder-gray-400 shadow-sm tracking-wide"
+                      placeholder="••••••••"
+                      required
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -300,9 +300,9 @@ const Login = () => {
                 </div>
 
                 <button type="submit" disabled={isLoading} className="w-full bg-gray-900 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2)] hover:bg-black hover:-translate-y-0.5 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0 active:scale-[0.98] mt-2">
-                  {isLoading ? <Loader2 className="animate-spin" size={18}/> : <>Đăng nhập <ArrowRight size={16} className="ml-1 opacity-80"/></>}
+                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Đăng nhập <ArrowRight size={16} className="ml-1 opacity-80" /></>}
                 </button>
-                
+
                 <div className="text-center pt-8">
                   <p className="text-[13px] text-gray-500 font-medium">Bạn muốn mở quầy trên hệ thống?</p>
                   <button type="button" onClick={() => switchPartnerView('register')} className="text-gray-900 font-black hover:text-[#F27124] transition-colors mt-1">Đăng ký đối tác ngay</button>
@@ -331,11 +331,11 @@ const Login = () => {
                     />
                   </div>
                 </div>
-                
+
                 <button type="submit" disabled={isLoading} className="w-full bg-[#F27124] text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_rgba(242,113,36,0.25)] hover:shadow-[0_8px_25px_rgba(242,113,36,0.35)] hover:bg-[#D95F1B] hover:-translate-y-0.5 transition-all flex justify-center items-center gap-2 disabled:opacity-50 active:scale-[0.98]">
                   {isLoading ? <Loader2 className="animate-spin" size={18} /> : <><KeyRound size={16} className="opacity-80" /> Gửi mã xác nhận</>}
                 </button>
-                
+
                 <button type="button" onClick={() => switchPartnerView('login')} className="w-full flex items-center justify-center gap-2 text-[13px] font-bold text-gray-500 hover:text-gray-900 py-3 transition-colors mt-2">
                   <ArrowLeft size={16} /> Quay lại đăng nhập
                 </button>
@@ -349,7 +349,7 @@ const Login = () => {
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="bg-orange-50/50 border border-orange-100/50 rounded-2xl p-4 mb-6">
                   <p className="text-[12px] text-gray-600 font-medium text-center">
-                    Mã xác nhận đã được gửi tới <br/><strong className="text-gray-900 font-black text-sm">{email}</strong>
+                    Mã xác nhận đã được gửi tới <br /><strong className="text-gray-900 font-black text-sm">{email}</strong>
                   </p>
                 </div>
 
@@ -465,9 +465,9 @@ const Login = () => {
                 </div>
 
                 <button type="submit" disabled={isLoading} className="w-full bg-[#F27124] text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_rgba(242,113,36,0.25)] hover:shadow-[0_8px_25px_rgba(242,113,36,0.35)] hover:bg-[#D95F1B] hover:-translate-y-0.5 transition-all flex justify-center items-center gap-2 disabled:opacity-50 active:scale-[0.98] mt-4">
-                  {isLoading ? <Loader2 className="animate-spin" size={18}/> : 'Gửi yêu cầu mở quầy'}
+                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Gửi yêu cầu mở quầy'}
                 </button>
-                
+
                 <div className="text-center pt-6">
                   <p className="text-[13px] text-gray-500 font-medium">Đã có tài khoản đối tác?</p>
                   <button type="button" onClick={() => switchPartnerView('login')} className="text-gray-900 font-black hover:text-[#F27124] transition-colors mt-1">Quay lại Đăng nhập</button>
@@ -482,27 +482,27 @@ const Login = () => {
       {/* Nửa Phải - Banner Hình Ảnh (Chỉ hiện trên màn to) */}
       <div className="hidden lg:flex lg:w-[50%] xl:w-[55%] relative bg-gray-900 p-6 items-center justify-center">
         <div className="absolute inset-0 m-6 rounded-[3rem] overflow-hidden shadow-2xl">
-            <img src="https://images.unsplash.com/photo-1555126634-323283e090fa?w=1600&q=80" alt="Delicious food" className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-[20s] ease-out" />
-            
-            {/* Lớp phủ Gradient đen để text dễ đọc */}
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
-            
-            {/* Content Banner */}
-            <div className="absolute bottom-16 left-12 right-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
-              <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-10 rounded-[2.5rem] text-white shadow-2xl">
-                <div className="bg-white p-3 rounded-2xl w-fit mb-6 shadow-lg">
-                  <img src={`${process.env.PUBLIC_URL}/logo-mark.svg`} alt="SlotHub" className="w-8 h-8" />
-                </div>
-                <h3 className="text-4xl font-black mb-4 leading-[1.1] tracking-tight">Hương vị đích thực,<br/>Giao tận tay bạn.</h3>
-                <p className="text-gray-200 leading-relaxed font-medium text-sm md:text-base w-[90%]">
-                  Nền tảng đặt đồ ăn và thanh toán không tiền mặt hàng đầu dành cho sinh viên. Tiết kiệm thời gian, tận hưởng trọn vẹn từng bữa ăn!
-                </p>
-                <div className="flex gap-3 mt-8">
-                  <span className="bg-black/30 border border-white/10 px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md flex items-center gap-1.5"><ShieldCheck size={14} className="text-green-400"/> Bảo mật 100%</span>
-                  <span className="bg-black/30 border border-white/10 px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md flex items-center gap-1.5"><Store size={14} className="text-[#F27124]"/> Đa dạng gian hàng</span>
-                </div>
+          <img src="https://images.unsplash.com/photo-1555126634-323283e090fa?w=1600&q=80" alt="Delicious food" className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-[20s] ease-out" />
+
+          {/* Lớp phủ Gradient đen để text dễ đọc */}
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+
+          {/* Content Banner */}
+          <div className="absolute bottom-16 left-12 right-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-10 rounded-[2.5rem] text-white shadow-2xl">
+              <div className="bg-white p-3 rounded-2xl w-fit mb-6 shadow-lg">
+                <img src={`${process.env.PUBLIC_URL}/logo-mark.svg`} alt="SlotHub" className="w-8 h-8" />
+              </div>
+              <h3 className="text-4xl font-black mb-4 leading-[1.1] tracking-tight">Hương vị đích thực,<br />Giao tận tay bạn.</h3>
+              <p className="text-gray-200 leading-relaxed font-medium text-sm md:text-base w-[90%]">
+                Nền tảng đặt đồ ăn và thanh toán không tiền mặt hàng đầu dành cho sinh viên. Tiết kiệm thời gian, tận hưởng trọn vẹn từng bữa ăn!
+              </p>
+              <div className="flex gap-3 mt-8">
+                <span className="bg-black/30 border border-white/10 px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md flex items-center gap-1.5"><ShieldCheck size={14} className="text-green-400" /> Bảo mật 100%</span>
+                <span className="bg-black/30 border border-white/10 px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md flex items-center gap-1.5"><Store size={14} className="text-[#F27124]" /> Đa dạng gian hàng</span>
               </div>
             </div>
+          </div>
         </div>
       </div>
     </div>

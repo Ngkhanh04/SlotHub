@@ -16,13 +16,19 @@ const notificationSchema = new mongoose.Schema({
         ref: 'Order',
         default: null
     },
+    transactionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Transaction',
+        default: null
+    },
     title: { type: String, required: true },
     message: { type: String, required: true },
     type: {
         type: String,
         enum: [
             'DEPOSIT', 'WITHDRAW', 'PAYOUT', 'NEW_VENDOR', 'NEW_USER', 'NEW_ORDER',
-            'NEW_REVIEW', 'REPORT', 'SYSTEM', 'ORDER_READY', 'ORDER_COMPLETED', 'PICKUP'
+            'NEW_REVIEW', 'REPORT', 'SYSTEM', 'ORDER_READY', 'ORDER_COMPLETED', 'PICKUP',
+            'PAYOUT_CONFIRMED', 'WITHDRAW_CONFIRMED'
         ],
         default: 'SYSTEM'
     },

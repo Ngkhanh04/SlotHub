@@ -16,6 +16,7 @@ import FoodDetail from './pages/FoodDetail';
 import PaymentResult from './pages/PaymentResult'; 
 import Profile from './pages/Profile';
 import StudentMessages from './pages/StudentMessages';
+import Forum from './pages/Forum';
 import ChatWidget from './components/ChatWidget';
 
 // Dành cho Admin & Vendor
@@ -75,7 +76,7 @@ function App() {
   // Tự động xử lý và làm sạch URL khi PayOS/VNPay redirect chứa query parameters trước dấu hash (#)
   const search = window.location.search;
   if (search && (search.includes('orderCode') || search.includes('vnp_'))) {
-    window.history.replaceState({}, document.title, window.location.pathname);
+    window.history.replaceState({}, document.title, '/');
     window.location.hash = `#/payment-result${search}`;
   }
 
@@ -97,6 +98,7 @@ function App() {
               <Route path="/payment-result" element={<PaymentResult />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/messages" element={<StudentMessages />} />
+              <Route path="/forum" element={<Forum />} />
               
               {/* 🌟 ROUTE DÀNH CHO NGƯỜI BÁN (VENDOR) */}
               <Route path="/vendor/*" element={<VendorPage />} />

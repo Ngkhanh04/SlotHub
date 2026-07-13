@@ -9,8 +9,8 @@ module.exports = {
         sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       colors: {
-        // Định nghĩa màu Cam FPT để dùng cho chuẩn thương hiệu
-        fpt: '#F27124', 
+        // Định nghĩa màu Cam để dùng cho chuẩn thương hiệu
+        fpt: '#F27124',
       },
       borderRadius: {
         '4xl': '2rem',

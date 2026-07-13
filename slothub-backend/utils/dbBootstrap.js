@@ -16,7 +16,7 @@ const DEFAULT_SLOTS = [
     { startTime: '11:00', endTime: '11:30', maxCapacity: 100 },
     { startTime: '11:30', endTime: '12:00', maxCapacity: 100 },
     { startTime: '12:00', endTime: '12:30', maxCapacity: 100 },
-    { startTime: '16:00', endTime: '17:30', maxCapacity: 80 },
+    { startTime: '17:00', endTime: '17:30', maxCapacity: 80 },
     { startTime: '17:30', endTime: '18:00', maxCapacity: 80 }
 ];
 
@@ -40,6 +40,13 @@ const bootstrapDatabase = async () => {
     require('../models/Message');
     require('../models/PickupVerification');
     require('../models/AuditLog');
+    require('../models/ForumPost');
+    require('../models/ForumVote');
+    require('../models/ForumComment');
+    require('../models/ForumPostReward');
+    require('../models/VendorVoucher');
+    require('../models/VendorForumRule');
+    require('../models/SystemConfig');
 
     const catCount = await Category.countDocuments();
     if (catCount === 0) {

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { 
+const {
     getDashboardStats,
     getCashFlowChart,
     getDashboardActivity,
@@ -11,7 +11,9 @@ const {
     rejectVendor,
     updateAdminBankInfo,
     getAdminNotifications,    // 🌟 Import hàm thông báo
-    markNotificationAsRead    // 🌟 Import hàm thông báo
+    markNotificationAsRead,    // 🌟 Import hàm thông báo
+    getCancellationPolicyAdmin,
+    updateCancellationPolicyAdmin,
 } = require('../controllers/adminController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -36,5 +38,8 @@ router.delete('/reject-vendor/:userId', rejectVendor);
 // 🌟 Tuyến đường (Routes) quản lý Thông báo
 router.get('/notifications', getAdminNotifications);
 router.put('/notifications/:id/read', markNotificationAsRead);
+
+router.get('/cancellation-policy', getCancellationPolicyAdmin);
+router.put('/cancellation-policy', updateCancellationPolicyAdmin);
 
 module.exports = router;

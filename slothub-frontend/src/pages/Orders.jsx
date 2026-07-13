@@ -5,10 +5,11 @@ import { AuthContext } from '../context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react'; 
 import { 
   ArrowLeft, Clock, CheckCircle2, XCircle, 
-  ChefHat, QrCode, Store, Receipt, X, Loader2, Star, MessageSquare, Send, AlertTriangle, Timer
+  ChefHat, QrCode, Store, Receipt, X, Loader2, Star, MessageSquare, Send, AlertTriangle, Timer, Ban
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import LanguageToggle from '../components/LanguageToggle';
+import { appAlert } from '../utils/appAlert';
 import {
   isPickupCodeExpired,
   getPickupCodeRemainingMs,
@@ -17,7 +18,7 @@ import {
 
 const Orders = () => {
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user, fetchBalance } = useContext(AuthContext);
   const { t } = useLocale();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +36,10 @@ const Orders = () => {
   const [reportDesc, setReportDesc] = useState('');
   const [reportSending, setReportSending] = useState(false);
   const [qrTick, setQrTick] = useState(0);
+  const [cancelOrder, setCancelOrder] = useState(null);
+  const [cancelPreview, setCancelPreview] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!selectedOrderQR) return undefined;
@@ -59,6 +64,43 @@ const Orders = () => {
     };
     fetchOrders();
   }, [user, navigate]);
+
+  const refreshOrders = async () => {
+    const res = await api.get('/orders/my-orders');
+    setOrders(res.data);
+  };
+
+  const openCancelModal = async (order) => {
+    setCancelOrder(order);
+    setCancelPreview(null);
+    setCancelLoading(true);
+    try {
+      const res = await api.get(`/orders/${order._id}/cancel-preview`);
+      setCancelPreview(res.data);
+    } catch (err) {
+      appAlert(err.response?.data?.message || 'Không thể xem chính sách hủy', { type: 'error' });
+      setCancelOrder(null);
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelOrder) return;
+    setCancelling(true);
+    try {
+      const res = await api.post(`/orders/${cancelOrder._id}/cancel`);
+      appAlert(res.data.message || t('orders.cancelSuccess'), { type: 'success' });
+      setCancelOrder(null);
+      setCancelPreview(null);
+      await refreshOrders();
+      fetchBalance?.();
+    } catch (err) {
+      appAlert(err.response?.data?.message || 'Hủy đơn thất bại', { type: 'error' });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Hàm chuyển đổi Trạng thái đơn hàng
   const renderStatus = (status) => {
@@ -134,7 +176,7 @@ const Orders = () => {
   return (
     <div className="bg-[#F9FAFB] min-h-screen pb-20 font-sans text-gray-800">
       {/* HEADER */}
-      <header className="bg-white px-4 sm:px-8 py-4 shadow-sm sticky top-0 z-40 flex items-center gap-4 border-b border-gray-100">
+      <header className="bg-white px-8 py-4 shadow-sm sticky top-0 z-40 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => navigate('/')} className="p-2 bg-gray-50 hover:bg-orange-50 hover:text-[#F27124] rounded-full transition-colors">
           <ArrowLeft size={24} />
         </button>
@@ -165,6 +207,10 @@ const Orders = () => {
               // Điều kiện hiện nút Đánh giá: Đã hoàn thành (Ăn xong)
               const canReview = order.status === 'Completed';
               const canReport = order.status !== 'Cancelled' && order.status !== 'Pending';
+              const canCancel =
+                order.status !== 'Completed' &&
+                order.status !== 'Cancelled' &&
+                ['Pending', 'Processing', 'Ready'].includes(order.status);
 
               return (
                 <div key={order._id} className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow relative overflow-hidden">
@@ -176,9 +222,14 @@ const Orders = () => {
                       <p className="text-xs text-gray-400 font-bold mb-1 tracking-wider uppercase">Mã đơn: #{order._id.slice(-6)}</p>
                       <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
                         <Store size={18} className="text-[#F27124]" /> 
-                        {order.vendor?.name || 'Canteen FPT'}
+                        {order.vendor?.name || 'CanTeen'}
                       </h3>
                       <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleString('vi-VN')}</p>
+                      {order.pickupSlot && (
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                          <Clock size={12} /> {t('orders.pickupSlot')}: {order.pickupSlot}
+                        </p>
+                      )}
                     </div>
                     <div>{renderStatus(order.status)}</div>
                   </div>
@@ -208,37 +259,57 @@ const Orders = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pl-4 pt-4 border-t border-gray-100">
-                    <div className="flex justify-between sm:flex-col items-center sm:items-start w-full sm:w-auto">
+                  <div className="flex items-center justify-between pl-4 pt-4 border-t border-gray-100">
+                    <div className="flex flex-col">
                       <span className="text-xs text-gray-500 font-bold">Tổng thanh toán:</span>
                       <span className={`text-xl font-black ${order.status === 'Cancelled' ? 'text-gray-400 line-through' : 'text-[#F27124]'}`}>
                         {order.totalPrice.toLocaleString()}đ
                       </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 justify-end items-center w-full sm:w-auto">
-                      {canShowQR && (
-                        <button 
-                          onClick={() => setSelectedOrderQR(order)}
-                          className="bg-orange-50 text-[#F27124] border border-orange-200 px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#F27124] hover:text-white transition-colors text-sm w-full sm:w-auto"
-                        >
-                          <QrCode size={18} /> Mã nhận món
-                        </button>
-                      )}
-                      {order.paymentStatus === 'Paid' &&
-                        order.status !== 'Completed' &&
-                        order.status !== 'Cancelled' &&
-                        pickupExpired && (
-                        <span className="text-xs font-bold text-red-500 bg-red-50 border border-red-100 px-3 py-2 rounded-xl text-center w-full sm:w-auto">
-                          Mã nhận món đã hết hạn (2h)
+                      {order.status === 'Cancelled' && order.refundAmount > 0 && (
+                        <span className="text-xs font-bold text-green-600 mt-1">
+                          {order.refundPercent >= 100
+                            ? t('orders.refunded', { amount: Number(order.refundAmount).toLocaleString('vi-VN') })
+                            : t('orders.partialRefunded', { amount: Number(order.refundAmount).toLocaleString('vi-VN') })}
                         </span>
                       )}
-                      
+                      {order.status === 'Cancelled' && order.paymentStatus === 'Paid' && !order.refundAmount && (
+                        <span className="text-xs font-bold text-red-500 mt-1">{t('orders.cancelNoRefund')}</span>
+                      )}
+                    </div>
+
+                    {/* HIỂN THỊ NÚT TƯƠNG ỨNG VỚI TRẠNG THÁI */}
+                    {canShowQR && (
+                      <button 
+                        onClick={() => setSelectedOrderQR(order)}
+                        className="bg-orange-50 text-[#F27124] border border-orange-200 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-[#F27124] hover:text-white transition-colors"
+                      >
+                        <QrCode size={18} /> Mã nhận món
+                      </button>
+                    )}
+                    {order.paymentStatus === 'Paid' &&
+                      order.status !== 'Completed' &&
+                      order.status !== 'Cancelled' &&
+                      pickupExpired && (
+                      <span className="text-xs font-bold text-red-500 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
+                        Mã nhận món đã hết hạn (2h)
+                      </span>
+                    )}
+                    
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {canCancel && (
+                        <button
+                          type="button"
+                          onClick={() => openCancelModal(order)}
+                          className="bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-red-100 text-sm"
+                        >
+                          <Ban size={16} /> {t('orders.cancelOrder')}
+                        </button>
+                      )}
                       {canReport && (
                         <button
                           type="button"
                           onClick={() => { setReportOrder(order); setReportType('BAD_QUALITY'); }}
-                          className="bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-100 text-sm w-full sm:w-auto"
+                          className="bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-amber-100 text-sm"
                         >
                           <AlertTriangle size={16} /> Report / Chat quầy
                         </button>
@@ -247,7 +318,7 @@ const Orders = () => {
                         <button 
                           type="button"
                           onClick={() => setSelectedOrderReview(order)}
-                          className="bg-white text-blue-500 border border-blue-200 px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors shadow-sm text-sm w-full sm:w-auto"
+                          className="bg-white text-blue-500 border border-blue-200 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-50 transition-colors shadow-sm text-sm"
                         >
                           <MessageSquare size={16} /> Đánh giá
                         </button>
@@ -403,6 +474,68 @@ const Orders = () => {
                 Gửi & mở chat với quầy
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {cancelOrder && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2rem] shadow-2xl p-8 relative">
+            <button type="button" onClick={() => { setCancelOrder(null); setCancelPreview(null); }} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-full">
+              <X size={22} />
+            </button>
+            <h3 className="text-xl font-black text-gray-800 mb-1">{t('orders.cancelTitle')}</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              #{cancelOrder._id.slice(-6)} · {cancelOrder.vendor?.name}
+            </p>
+            {cancelLoading ? (
+              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#F27124]" size={32} /></div>
+            ) : cancelPreview ? (
+              <div className="space-y-4">
+                <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-900">
+                  <p className="font-bold mb-2">{t('orders.cancelPolicy')}</p>
+                  <p>{cancelPreview.message}</p>
+                  {cancelPreview.minutesUntilPickup != null && cancelPreview.minutesUntilPickup >= 0 && (
+                    <p className="text-xs mt-2 text-amber-700">
+                      {t('orders.minutesUntilPickup', { minutes: cancelPreview.minutesUntilPickup })}
+                    </p>
+                  )}
+                  {cancelPreview.policy?.tiers?.map((tier) => (
+                    <p key={tier.minMinutesBefore} className="text-xs mt-1">• {tier.label}</p>
+                  ))}
+                  {cancelPreview.policy?.noRefundLabel && (
+                    <p className="text-xs mt-1 text-red-700 font-bold">• {cancelPreview.policy.noRefundLabel}</p>
+                  )}
+                </div>
+                {cancelPreview.unpaid ? (
+                  <p className="text-sm text-green-700 font-bold">{t('orders.cancelUnpaid')}</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-green-50 rounded-xl p-3 border border-green-100">
+                      <p className="text-xs text-green-700 font-bold">Hoàn tiền</p>
+                      <p className="font-black text-green-800">
+                        {(cancelPreview.refundAmount || 0).toLocaleString('vi-VN')}đ ({cancelPreview.refundPercent || 0}%)
+                      </p>
+                    </div>
+                    <div className="bg-red-50 rounded-xl p-3 border border-red-100">
+                      <p className="text-xs text-red-700 font-bold">Không hoàn</p>
+                      <p className="font-black text-red-800">
+                        {(cancelPreview.forfeitAmount || 0).toLocaleString('vi-VN')}đ
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  disabled={cancelling || cancelPreview.canCancel === false}
+                  onClick={handleConfirmCancel}
+                  className="w-full bg-red-600 text-white py-3 rounded-xl font-black flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {cancelling ? <Loader2 className="animate-spin" size={20} /> : <Ban size={18} />}
+                  {t('orders.cancelConfirm')}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

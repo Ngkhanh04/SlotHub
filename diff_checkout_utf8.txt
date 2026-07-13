@@ -1,0 +1,904 @@
+﻿diff --git a/slothub-frontend/src/pages/Checkout.jsx b/slothub-frontend/src/pages/Checkout.jsx
+index 6632f37..70bb298 100644
+--- a/slothub-frontend/src/pages/Checkout.jsx
++++ b/slothub-frontend/src/pages/Checkout.jsx
+@@ -1,16 +1,40 @@
+-import React, { useState, useEffect, useContext } from 'react';
++import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
+ import { useNavigate } from 'react-router-dom';
+ import api from '../api/axios';
+ import { AuthContext } from '../context/AuthContext';
+-import { 
+-  ArrowLeft, Wallet, Receipt, Clock, FileText, 
++import {
++  ArrowLeft, Wallet, Receipt, Clock, FileText,
+   CheckCircle2, AlertCircle, Loader2, Plus, Minus, Trash2, CreditCard,
+-  Sun, CloudSun, Sunset, Moon, Sparkles, QrCode
++  Sun, CloudSun, Sunset, Moon, Sparkles, QrCode, Store, CheckSquare, Square, Gift
+ } from 'lucide-react';
+-import { PICKUP_SLOT_STORAGE_KEY, pickDefaultSlotId } from '../utils/vendorHours';
++import { PICKUP_SLOT_STORAGE_KEY, PICKUP_DATE_STORAGE_KEY, pickDefaultSlotId, getVendorStatusForSlot, filterSlotsForPickupDate, formatPickupDayLabel, isSlotPastForToday, countTodayPickupSlots } from '../utils/vendorHours';
+ import { useLocale } from '../context/LocaleContext';
++import { appAlert } from '../utils/appAlert';
+ import LanguageToggle from '../components/LanguageToggle';
+ 
++/** Chuß║⌐n h├│a ID quß║ºy ΓÇö ─æß╗ông bß╗Ö vß╗¢i backend */
++const normalizeVendorId = (vendor) => {
++  if (vendor == null) return '';
++  if (typeof vendor === 'string') return vendor;
++  if (typeof vendor === 'object') {
++    const id = vendor._id ?? vendor.id;
++    return id != null ? String(id) : '';
++  }
++  return String(vendor);
++};
++
++/** Lß║Ñy ID quß║ºy tß╗½ m├│n trong giß╗Å */
++const getCartItemVendorId = (cartItem) => normalizeVendorId(cartItem?.menuItem?.vendor);
++
++/** Lß║Ñy ID m├│n trong giß╗Å ΓÇö hß╗ù trß╗ú cß║ú populate object v├á ref string */
++const getCartItemMenuId = (cartItem) => {
++  const m = cartItem?.menuItem;
++  if (!m) return '';
++  if (typeof m === 'string') return m;
++  const id = m._id ?? m.id;
++  return id != null ? String(id) : '';
++};
++
+ const Checkout = () => {
+   const { balance, fetchBalance, user } = useContext(AuthContext);
+   const { t } = useLocale();
+@@ -19,37 +43,62 @@ const Checkout = () => {
+   const [cart, setCart] = useState({ items: [], totalPrice: 0, vendorOpen: true, vendorStatusMessage: '' });
+   const [loading, setLoading] = useState(true);
+   const [isProcessing, setIsProcessing] = useState(false);
+-  
++
+   const [pickupSlot, setPickupSlot] = useState('');
++  const [pickupDate, setPickupDate] = useState('today');
+   const [note, setNote] = useState('');
+   const [paymentMethod, setPaymentMethod] = useState('wallet');
+   const [timeSlots, setTimeSlots] = useState([]);
++  const [selectedIds, setSelectedIds] = useState([]);
++  const [voucherCode, setVoucherCode] = useState('');
++  const [myVouchers, setMyVouchers] = useState([]);
++  const [cancelPolicy, setCancelPolicy] = useState(null);
++  const cartInitialized = React.useRef(false);
+ 
+   const slotIcons = [<Sun size={20} />, <CloudSun size={20} />, <Sunset size={20} />, <Moon size={20} />];
+   const slotLabelsRaw = t('pickup.slotLabels');
+-  const slotLabels = Array.isArray(slotLabelsRaw) ? slotLabelsRaw : ['Bß╗»a s├íng', 'Giß╗¥ cao ─æiß╗âm', 'Nß║íp n─âng l╞░ß╗úng', 'Giß╗¥ giß║úi lao'];
++  const slotLabels = Array.isArray(slotLabelsRaw) ? slotLabelsRaw : ['Bß╗»a s├íng', 'Giß╗¥ cao ─æiß╗âm', 'Nß║íp n─âng l╞░ß╗úng', 'Tan hß╗ìc'];
+ 
+   useEffect(() => {
+     if (!user) return navigate('/login');
+ 
+     const loadData = async () => {
+       try {
+-        const [cartRes, slotsRes] = await Promise.all([
++        const [cartRes, slotsRes, vouchersRes, policyRes] = await Promise.all([
+           api.get('/cart'),
+           api.get('/timeslots'),
++          api.get('/forum/my-vouchers').catch(() => ({ data: [] })),
++          api.get('/orders/cancellation-policy').catch(() => ({ data: null })),
+         ]);
+         if (cartRes.data?.items) setCart(cartRes.data);
+         else if (cartRes.data?.cart) setCart(cartRes.data.cart);
++        const cartData = cartRes.data?.items ? cartRes.data : cartRes.data?.cart;
++        if (cartData?.items?.length && !cartInitialized.current) {
++          const ids = cartData.items.map(getCartItemMenuId).filter(Boolean);
++          setSelectedIds(ids);
++          cartInitialized.current = true;
++        }
+         const slots = slotsRes.data || [];
+         setTimeSlots(slots);
++        const savedDate = localStorage.getItem(PICKUP_DATE_STORAGE_KEY);
++        const initialDate = savedDate === 'tomorrow' ? 'tomorrow' : 'today';
++        const todaySlotCount = countTodayPickupSlots(slots);
++        const resolvedDate = initialDate === 'today' && todaySlotCount === 0 ? 'tomorrow' : initialDate;
++        setPickupDate(resolvedDate);
++        if (resolvedDate !== initialDate) {
++          localStorage.setItem(PICKUP_DATE_STORAGE_KEY, resolvedDate);
++        }
+         const saved = localStorage.getItem(PICKUP_SLOT_STORAGE_KEY);
++        const available = filterSlotsForPickupDate(slots, resolvedDate);
+         let initial = '';
+-        if (saved && slots.some((s) => s._id === saved)) {
++        if (saved && available.some((s) => s._id === saved)) {
+           initial = saved;
+-        } else if (slots.length) {
+-          initial = pickDefaultSlotId(slots);
++        } else if (available.length) {
++          initial = pickDefaultSlotId(slots, resolvedDate);
+         }
+         if (initial) setPickupSlot(initial);
++        setMyVouchers(vouchersRes.data || []);
++        setCancelPolicy(policyRes.data || null);
+       } catch (err) {
+         console.error("Lß╗ùi tß║úi dß╗» liß╗çu checkout:", err);
+       } finally {
+@@ -58,8 +107,9 @@ const Checkout = () => {
+     };
+ 
+     loadData();
+-    fetchBalance(); 
+-  }, [user, navigate, fetchBalance]);
++    fetchBalance();
++    // eslint-disable-next-line react-hooks/exhaustive-deps -- chß╗ë load cart khi ─æß╗òi user
++  }, [user, navigate]);
+ 
+   const handleUpdateQuantity = async (menuItemId, currentQuantity, change) => {
+     const newQuantity = currentQuantity + change;
+@@ -67,6 +117,7 @@ const Checkout = () => {
+       try {
+         const res = await api.delete(`/cart/remove/${menuItemId}`);
+         setCart(res.data?.cart || res.data);
++        setSelectedIds((prev) => prev.filter((id) => id !== String(menuItemId)));
+       } catch (err) {
+         console.error("Lß╗ùi x├│a m├│n:", err);
+       }
+@@ -76,7 +127,7 @@ const Checkout = () => {
+       const res = await api.post('/cart/add', { menuItemId, quantity: change });
+       setCart(res.data?.cart || res.data);
+     } catch (err) {
+-      alert(err.response?.data?.message || "Lß╗ùi cß║¡p nhß║¡t sß╗æ l╞░ß╗úng");
++      appAlert(err.response?.data?.message || "Lß╗ùi cß║¡p nhß║¡t sß╗æ l╞░ß╗úng", { type: 'error' });
+     }
+   };
+ 
+@@ -84,47 +135,220 @@ const Checkout = () => {
+     try {
+       const res = await api.delete(`/cart/remove/${menuItemId}`);
+       setCart(res.data?.cart || res.data);
++      const sid = String(menuItemId);
++      setSelectedIds((prev) => prev.filter((id) => id !== sid));
+     } catch (err) {
+       console.error("Lß╗ùi x├│a m├│n:", err);
+     }
+   };
+ 
+-  const isEnoughBalance = balance >= cart.totalPrice;
++  const isItemSelected = (cartItemOrId) => {
++    const id = typeof cartItemOrId === 'string' ? cartItemOrId : getCartItemMenuId(cartItemOrId);
++    return id ? selectedIds.includes(id) : false;
++  };
++
++  const availableSlots = useMemo(
++    () => filterSlotsForPickupDate(timeSlots, pickupDate),
++    [timeSlots, pickupDate]
++  );
++
++  const selectedSlot = availableSlots.find((s) => s._id === pickupSlot) || timeSlots.find((s) => s._id === pickupSlot);
++
++  const todaySlotCount = useMemo(() => countTodayPickupSlots(timeSlots), [timeSlots]);
++
++  const handlePickupDateChange = (nextDate) => {
++    if (nextDate === 'today' && todaySlotCount === 0) {
++      appAlert(t('checkout.pickupNoSlotsToday'), { type: 'warning' });
++      return;
++    }
++    setPickupDate(nextDate);
++    localStorage.setItem(PICKUP_DATE_STORAGE_KEY, nextDate);
++    const nextId = pickDefaultSlotId(timeSlots, nextDate);
++    setPickupSlot(nextId);
++    if (nextId) localStorage.setItem(PICKUP_SLOT_STORAGE_KEY, nextId);
++    else setPickupSlot('');
++  };
++
++  const groupedCart = useMemo(() => {
++    const groups = {};
++    (cart.items || []).forEach((item) => {
++      const vendor = item.menuItem?.vendor;
++      const vendorId = normalizeVendorId(vendor) || 'unknown';
++      if (!groups[vendorId]) {
++        groups[vendorId] = {
++          vendorId,
++          vendorName: vendor?.name || 'Quß║ºy c─âng tin',
++          vendor,
++          items: [],
++        };
++      }
++      groups[vendorId].items.push(item);
++    });
++    return Object.values(groups);
++  }, [cart.items]);
++
++  const selectedItems = useMemo(
++    () =>
++      (cart.items || []).filter((i) => {
++        const id = getCartItemMenuId(i);
++        return id ? selectedIds.includes(id) : false;
++      }),
++    [cart.items, selectedIds]
++  );
++
++  const selectedTotal = useMemo(
++    () => selectedItems.reduce((sum, i) => sum + (i.menuItem?.price || 0) * i.quantity, 0),
++    [selectedItems]
++  );
++
++  const selectedVendorCount = useMemo(() => {
++    const ids = new Set(selectedItems.map(getCartItemVendorId).filter(Boolean));
++    return ids.size;
++  }, [selectedItems]);
++
++  const selectedVendorIds = useMemo(() => {
++    return new Set(selectedItems.map(getCartItemVendorId).filter(Boolean));
++  }, [selectedItems]);
++
++  const selectedVoucher = useMemo(() => {
++    const code = voucherCode.trim().toUpperCase();
++    if (!code) return null;
++    return myVouchers.find((v) => v.code === code) || null;
++  }, [myVouchers, voucherCode]);
++
++  const getVoucherVendorId = useCallback((v) => normalizeVendorId(v?.vendor), []);
++
++  const vendorSubtotal = useCallback((vendorId) => {
++    const vid = normalizeVendorId(vendorId);
++    return selectedItems
++      .filter((i) => getCartItemVendorId(i) === vid)
++      .reduce((sum, i) => sum + (i.menuItem?.price || 0) * i.quantity, 0);
++  }, [selectedItems]);
++
++  const voucherDiscount = useMemo(() => {
++    if (!voucherCode.trim()) return 0;
++    const v = myVouchers.find((x) => x.code === voucherCode.trim().toUpperCase());
++    if (!v) return 0;
++    const vid = getVoucherVendorId(v);
++    if (!vid || !selectedVendorIds.has(vid)) return 0;
++    const sub = vendorSubtotal(vid);
++    if (sub < (v.minOrder || 0)) return 0;
++    return Math.min(v.discountAmount, sub);
++  }, [voucherCode, myVouchers, selectedVendorIds, vendorSubtotal, getVoucherVendorId]);
++
++  const payableTotal = useMemo(
++    () => Math.max(0, selectedTotal - voucherDiscount),
++    [selectedTotal, voucherDiscount]
++  );
++
++  const voucherWarning = useMemo(() => {
++    const code = voucherCode.trim().toUpperCase();
++    if (!code) return null;
++    const v = myVouchers.find((x) => x.code === code);
++    if (!v) return null;
++    const vid = getVoucherVendorId(v);
++    const vendorName = v.vendor?.name || 'quß║ºy n├áy';
++    if (!selectedVendorIds.has(vid)) {
++      return t('checkout.voucherNotInCart', { vendor: vendorName });
++    }
++    const sub = vendorSubtotal(vid);
++    if (sub < (v.minOrder || 0)) {
++      return t('checkout.voucherMinOrder', {
++        vendor: vendorName,
++        amount: Number(v.minOrder).toLocaleString('vi-VN'),
++      });
++    }
++    return null;
++  }, [voucherCode, myVouchers, selectedVendorIds, vendorSubtotal, getVoucherVendorId, t]);
++
++  const closedSelectedVendor = useMemo(() => {
++    if (!selectedSlot) return null;
++    for (const group of groupedCart) {
++      const hasSelected = group.items.some((i) => {
++        const id = getCartItemMenuId(i);
++        return id ? selectedIds.includes(id) : false;
++      });
++      if (!hasSelected) continue;
++      const status = getVendorStatusForSlot(group.vendor, selectedSlot);
++      if (!status.isOpen) return status.message;
++    }
++    return null;
++  }, [groupedCart, selectedIds, selectedSlot]);
++
++  const toggleItemSelection = (menuItemId) => {
++    const id = String(menuItemId);
++    if (!id) return;
++    setSelectedIds((prev) =>
++      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
++    );
++  };
++
++  const toggleVendorSelection = (group) => {
++    const ids = group.items.map(getCartItemMenuId).filter(Boolean);
++    const allSelected = ids.length > 0 && ids.every((id) => selectedIds.includes(id));
++    setSelectedIds((prev) => {
++      if (allSelected) return prev.filter((id) => !ids.includes(id));
++      return [...new Set([...prev, ...ids])];
++    });
++  };
++
++  const selectAllItems = () => {
++    setSelectedIds((cart.items || []).map(getCartItemMenuId).filter(Boolean));
++  };
++
++  const isEnoughBalance = balance >= payableTotal;
+ 
+   const handlePlaceOrder = async () => {
+-    if (cart.vendorOpen === false) {
+-      return alert(cart.vendorStatusMessage || 'Qu├ín ─æ├ú ─æ├│ng cß╗¡a, kh├┤ng thß╗â ─æß║╖t ─æ╞ín l├║c n├áy.');
++    if (selectedItems.length === 0) {
++      return appAlert('Vui l├▓ng chß╗ìn ├¡t nhß║Ñt mß╗Öt m├│n ─æß╗â thanh to├ín!', { type: 'warning' });
++    }
++    if (closedSelectedVendor) {
++      return appAlert(closedSelectedVendor, { type: 'warning' });
++    }
++    if (!pickupSlot || !selectedSlot) return appAlert(t('checkout.selectSlot'), { type: 'warning' });
++    if (pickupDate === 'today' && isSlotPastForToday(selectedSlot)) {
++      return appAlert(t('checkout.pickupNoSlotsToday'), { type: 'warning' });
+     }
+-    if (!pickupSlot) return alert(t('checkout.selectSlot'));
+     if (paymentMethod === 'wallet' && !isEnoughBalance) return;
++    if (voucherWarning) {
++      return appAlert(voucherWarning, { type: 'warning' });
++    }
+ 
+     setIsProcessing(true);
+     try {
+-      // 1. Tß║ío ─æ╞ín h├áng trong DB
++      const selectedMenuItemIds = selectedItems.map((i) => getCartItemMenuId(i)).filter(Boolean);
+       const res = await api.post('/orders', {
+-        paymentMethod, 
++        paymentMethod,
+         deliveryType: 'pickup',
+         pickupSlot,
+-        note
++        pickupDate,
++        note,
++        selectedMenuItemIds,
++        voucherCode: voucherCode.trim() || undefined,
+       });
+ 
+-      // 2. Nß║┐u chß╗ìn thanh to├ín PayOS (M├ú QR) th├¼ gß╗ìi API tß║ío link thanh to├ín
++      const orderCount = res.data.orders?.length || 1;
++
+       if (paymentMethod === 'payos') {
+         const paymentRes = await api.post('/payment/create_payment_link', {
+-            orderId: res.data.order._id
++          orderId: res.data.order?._id || res.data.orders?.[0]?._id,
++          batchId: res.data.checkoutBatchId,
+         });
+-        window.location.href = paymentRes.data.paymentUrl; // Bß║»n user sang trang qu├⌐t QR
+-        return; 
++        window.location.href = paymentRes.data.paymentUrl;
++        return;
+       }
+ 
+-      // 3. Nß║┐u d├╣ng v├¡ (wallet) th├¼ chß║íy luß╗ông c┼⌐
+-      alert("≡ƒÄë ─Éß║╖t h├áng bß║▒ng V├¡ th├ánh c├┤ng! Vui l├▓ng lß║Ñy m├ú QR ß╗ƒ phß║ºn ─É╞ín h├áng ─æß╗â nhß║¡n m├│n nh├⌐.");
+-      await fetchBalance(); 
+-      navigate('/orders'); 
+-      
++      await appAlert(
++        orderCount > 1
++          ? `─É├ú ─æß║╖t ${orderCount} ─æ╞ín tß║íi ${orderCount} quß║ºy! M├ú QR/OTP ─æ├ú gß╗¡i vß╗ü email v├á c├│ trong mß╗Ñc ─É╞ín h├áng.`
++          : '─Éß║╖t h├áng th├ánh c├┤ng! M├ú QR/OTP ─æ├ú gß╗¡i vß╗ü email v├á c├│ trong mß╗Ñc ─É╞ín h├áng.',
++        { type: 'success', title: '─Éß║╖t h├áng th├ánh c├┤ng' }
++      );
++      await fetchBalance();
++      navigate('/orders');
+     } catch (err) {
+-      const msg = err.response?.data?.message || err.response?.data?.error || "Lß╗ùi khi ─æß║╖t h├áng!";
+-      alert(msg);
++      const msg = err.response?.data?.message || err.response?.data?.error || 'Lß╗ùi khi ─æß║╖t h├áng!';
++      appAlert(msg, { type: 'error' });
+     } finally {
+       setIsProcessing(false);
+     }
+@@ -144,7 +368,7 @@ const Checkout = () => {
+       <Receipt size={64} className="text-gray-300 mb-4" />
+       <h2 className="text-2xl font-black text-gray-800 mb-2">Giß╗Å h├áng trß╗æng</h2>
+       <p className="text-gray-500 font-medium mb-6">Bß║ín ch╞░a chß╗ìn m├│n n├áo ─æß╗â thanh to├ín cß║ú.</p>
+-      <button 
++      <button
+         onClick={() => navigate('/')}
+         className="bg-gray-900 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-black transition-all shadow-lg active:scale-95"
+       >
+@@ -155,7 +379,7 @@ const Checkout = () => {
+ 
+   return (
+     <div className="bg-[#F8FAFC] min-h-screen pb-24 font-sans text-gray-800 relative">
+-      
++
+       {/* Background Decor */}
+       <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[#F27124]/10 to-transparent pointer-events-none"></div>
+ 
+@@ -174,51 +398,95 @@ const Checkout = () => {
+       </header>
+ 
+       <div className="max-w-[1100px] mx-auto mt-8 flex flex-col lg:flex-row gap-8 px-4 relative z-10">
+-        
++
+         {/* ================= Cß╗ÿT TR├üI: TH├öNG TIN GIAO H├ÇNG ================= */}
+         <div className="flex-1 space-y-6">
+-          
++
+           {/* KHUNG GIß╗£ */}
+           <div className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-xl shadow-gray-200/40 border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500 relative overflow-hidden">
+-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-[100px] -z-0"></div>
++            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-[100px] pointer-events-none"></div>
+             <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-2 relative z-10">
+               <Clock className="text-[#F27124]" size={24} /> {t('checkout.pickupTitle')}
+             </h2>
+-            <p className="text-xs text-gray-500 font-medium mb-5 relative z-10">{t('checkout.pickupHint')}</p>
++            <p className="text-xs text-gray-500 font-medium mb-4 relative z-10">{t('checkout.pickupHint')}</p>
++
++            <p className="text-sm font-black text-gray-800 mb-3 relative z-10">{t('checkout.pickupDateTitle')}</p>
++            <div className="grid grid-cols-2 gap-3 mb-5 relative z-20">
++              {['today', 'tomorrow'].map((day) => {
++                const isDaySelected = pickupDate === day;
++                const isTodayUnavailable = day === 'today' && todaySlotCount === 0;
++                const dayLabel = day === 'today' ? t('checkout.pickupToday') : t('checkout.pickupTomorrow');
++                const dayDate = formatPickupDayLabel(day);
++                return (
++                  <button
++                    key={day}
++                    type="button"
++                    onClick={() => handlePickupDateChange(day)}
++                    className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${isDaySelected
++                        ? 'border-[#F27124] bg-orange-50 shadow-md'
++                        : isTodayUnavailable
++                          ? 'border-gray-100 bg-gray-50 opacity-60'
++                          : 'border-gray-100 bg-gray-50 hover:border-orange-200'
++                      }`}
++                  >
++                    <p className={`font-black text-base ${isDaySelected ? 'text-[#F27124]' : 'text-gray-900'}`}>{dayLabel}</p>
++                    <p className="text-xs font-bold text-gray-500 mt-1">{dayDate}</p>
++                    {isTodayUnavailable && (
++                      <p className="text-[10px] font-bold text-amber-700 mt-1">{t('checkout.pickupTodayClosed')}</p>
++                    )}
++                  </button>
++                );
++              })}
++            </div>
++
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+-              {timeSlots.length === 0 ? (
+-                <p className="text-gray-500 font-medium col-span-2">Ch╞░a c├│ khung giß╗¥. Vui l├▓ng thß╗¡ lß║íi sau.</p>
+-              ) : timeSlots.map((slot, index) => {
++              {availableSlots.length === 0 ? (
++                <p className="text-amber-700 font-medium col-span-2 bg-amber-50 border border-amber-100 rounded-2xl p-4">
++                  {t('checkout.pickupNoSlotsToday')}
++                </p>
++              ) : availableSlots.map((slot, index) => {
+                 const slotTime = `${slot.startTime} - ${slot.endTime}`;
+                 const isSelected = pickupSlot === slot._id;
+                 return (
+-                <button 
+-                  key={slot._id}
+-                  onClick={() => {
+-                    setPickupSlot(slot._id);
+-                    localStorage.setItem(PICKUP_SLOT_STORAGE_KEY, slot._id);
+-                  }}
+-                  className={`group flex items-center p-4 rounded-2xl border-2 transition-all text-left overflow-hidden relative ${
+-                    isSelected 
+-                      ? 'border-[#F27124] bg-gradient-to-br from-orange-50 to-orange-100/50 shadow-md scale-[1.02]' 
+-                      : 'border-gray-100 bg-gray-50 hover:border-orange-200 hover:bg-orange-50/30'
+-                  }`}
+-                >
+-                  <div className={`p-3 rounded-xl mr-4 transition-colors ${isSelected ? 'bg-[#F27124] text-white shadow-lg shadow-orange-500/30' : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#F27124]'}`}>
+-                    {slotIcons[index % slotIcons.length]}
+-                  </div>
+-                  <div className="flex-1">
+-                    <p className={`font-black text-lg ${isSelected ? 'text-[#F27124]' : 'text-gray-900'}`}>{slotTime}</p>
+-                    <p className={`text-xs font-bold mt-0.5 ${isSelected ? 'text-orange-600' : 'text-gray-500'}`}>{slotLabels[index % slotLabels.length]}</p>
+-                  </div>
+-                  {isSelected && (
+-                    <div className="absolute right-4 text-[#F27124] animate-in zoom-in duration-300">
+-                      <CheckCircle2 size={24} className="fill-orange-100" />
++                  <button
++                    key={slot._id}
++                    onClick={() => {
++                      setPickupSlot(slot._id);
++                      localStorage.setItem(PICKUP_SLOT_STORAGE_KEY, slot._id);
++                    }}
++                    className={`group flex items-center p-4 rounded-2xl border-2 transition-all text-left overflow-hidden relative ${isSelected
++                        ? 'border-[#F27124] bg-gradient-to-br from-orange-50 to-orange-100/50 shadow-md scale-[1.02]'
++                        : 'border-gray-100 bg-gray-50 hover:border-orange-200 hover:bg-orange-50/30'
++                      }`}
++                  >
++                    <div className={`p-3 rounded-xl mr-4 transition-colors ${isSelected ? 'bg-[#F27124] text-white shadow-lg shadow-orange-500/30' : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#F27124]'}`}>
++                      {slotIcons[index % slotIcons.length]}
+                     </div>
+-                  )}
+-                </button>
+-              );})}
++                    <div className="flex-1">
++                      <p className={`font-black text-lg ${isSelected ? 'text-[#F27124]' : 'text-gray-900'}`}>{slotTime}</p>
++                      <p className={`text-xs font-bold mt-0.5 ${isSelected ? 'text-orange-600' : 'text-gray-500'}`}>{slotLabels[index % slotLabels.length]}</p>
++                    </div>
++                    {isSelected && (
++                      <div className="absolute right-4 text-[#F27124] animate-in zoom-in duration-300">
++                        <CheckCircle2 size={24} className="fill-orange-100" />
++                      </div>
++                    )}
++                  </button>
++                );
++              })}
+             </div>
++            {cancelPolicy && (
++              <div className="mt-5 p-4 rounded-2xl bg-amber-50 border border-amber-100 relative z-10">
++                <p className="text-sm font-black text-amber-900 mb-2">{t('cancellation.title')}</p>
++                <p className="text-xs text-amber-800 mb-2">{t('cancellation.hint')}</p>
++                <ul className="text-xs text-amber-900 space-y-1 font-medium">
++                  {cancelPolicy.tiers?.map((tier) => (
++                    <li key={tier.minMinutesBefore}>ΓÇó {tier.label}</li>
++                  ))}
++                  <li className="text-red-700 font-bold">ΓÇó {cancelPolicy.noRefundLabel}</li>
++                </ul>
++              </div>
++            )}
+           </div>
+ 
+           {/* Lß╗£I NHß║«N */}
+@@ -226,9 +494,9 @@ const Checkout = () => {
+             <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-5">
+               <FileText className="text-[#F27124]" size={24} /> Ghi ch├║ cho qu├ín <span className="text-sm font-medium text-gray-400 ml-2">(T├╣y chß╗ìn)</span>
+             </h2>
+-            <textarea 
+-              value={note} onChange={e=>setNote(e.target.value)}
+-              placeholder="VD: C├┤ ╞íi cho con nhiß╗üu t╞░╞íng ß╗¢t, kh├┤ng h├ánh..." 
++            <textarea
++              value={note} onChange={e => setNote(e.target.value)}
++              placeholder="VD: C├┤ ╞íi cho con nhiß╗üu t╞░╞íng ß╗¢t, kh├┤ng h├ánh..."
+               rows="3"
+               className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 px-5 focus:bg-white focus:border-[#F27124] focus:ring-4 focus:ring-orange-50 outline-none transition-all font-medium resize-none text-gray-700"
+             ></textarea>
+@@ -239,35 +507,32 @@ const Checkout = () => {
+             <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-6">
+               <CreditCard className="text-[#F27124]" size={24} /> Ph╞░╞íng thß╗⌐c thanh to├ín
+             </h2>
+-            
++
+             <div className="flex flex-col sm:flex-row gap-5">
+-              
++
+               {/* === V├ì SLOTHUB === */}
+-              <div 
++              <div
+                 onClick={() => setPaymentMethod('wallet')}
+-                className={`group flex-1 p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-center relative overflow-hidden ${
+-                  paymentMethod === 'wallet' 
+-                  ? 'border-[#F27124] bg-gradient-to-br from-orange-50 to-orange-100/40 shadow-lg shadow-orange-500/10 scale-[1.02]' 
+-                  : 'border-gray-100 bg-gray-50 hover:border-orange-200 hover:bg-orange-50/50'
+-                }`}
++                className={`group flex-1 p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-center relative overflow-hidden ${paymentMethod === 'wallet'
++                    ? 'border-[#F27124] bg-gradient-to-br from-orange-50 to-orange-100/40 shadow-lg shadow-orange-500/10 scale-[1.02]'
++                    : 'border-gray-100 bg-gray-50 hover:border-orange-200 hover:bg-orange-50/50'
++                  }`}
+               >
+                 <div className="flex items-start gap-4 mb-3 relative z-10">
+-                  <div className={`p-3.5 rounded-2xl transition-all duration-300 ${
+-                    paymentMethod === 'wallet' 
+-                    ? 'bg-gradient-to-br from-[#F27124] to-[#D95F1B] text-white shadow-md shadow-orange-500/30' 
+-                    : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#F27124] group-hover:shadow-sm'
+-                  }`}>
++                  <div className={`p-3.5 rounded-2xl transition-all duration-300 ${paymentMethod === 'wallet'
++                      ? 'bg-gradient-to-br from-[#F27124] to-[#D95F1B] text-white shadow-md shadow-orange-500/30'
++                      : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#F27124] group-hover:shadow-sm'
++                    }`}>
+                     <Wallet size={24} />
+                   </div>
+                   <div className="flex flex-col pt-1">
+                     <span className={`font-black text-lg tracking-tight leading-none mb-1.5 transition-colors ${paymentMethod === 'wallet' ? 'text-[#F27124]' : 'text-gray-900'}`}>
+                       V├¡ SlotHub
+                     </span>
+-                    <span className={`text-xs font-black px-2.5 py-1 rounded-lg w-fit transition-colors ${
+-                      isEnoughBalance 
+-                        ? 'bg-green-100 text-green-700' 
++                    <span className={`text-xs font-black px-2.5 py-1 rounded-lg w-fit transition-colors ${isEnoughBalance
++                        ? 'bg-green-100 text-green-700'
+                         : 'bg-red-100 text-red-600'
+-                    }`}>
++                      }`}>
+                       Sß╗æ d╞░: {balance?.toLocaleString()}─æ
+                     </span>
+                   </div>
+@@ -276,25 +541,23 @@ const Checkout = () => {
+               </div>
+ 
+               {/* === VIETQR / PAYOS === */}
+-              <div 
++              <div
+                 onClick={() => setPaymentMethod('payos')}
+-                className={`group flex-1 p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-center relative overflow-hidden ${
+-                  paymentMethod === 'payos' 
+-                  ? 'border-[#00B14F] bg-gradient-to-br from-green-50 to-emerald-100/40 shadow-lg shadow-green-500/10 scale-[1.02]' 
+-                  : 'border-gray-100 bg-gray-50 hover:border-green-200 hover:bg-green-50/50'
+-                }`}
++                className={`group flex-1 p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-center relative overflow-hidden ${paymentMethod === 'payos'
++                    ? 'border-[#00B14F] bg-gradient-to-br from-green-50 to-emerald-100/40 shadow-lg shadow-green-500/10 scale-[1.02]'
++                    : 'border-gray-100 bg-gray-50 hover:border-green-200 hover:bg-green-50/50'
++                  }`}
+               >
+                 {/* ├ünh s├íng lß║Ñp l├ính trang tr├¡ g├│c cho PayOS */}
+                 {paymentMethod === 'payos' && (
+                   <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-[#00B14F]/20 to-transparent rounded-full blur-2xl"></div>
+                 )}
+-                
++
+                 <div className="flex items-start gap-4 mb-3 relative z-10">
+-                  <div className={`p-3.5 rounded-2xl transition-all duration-300 ${
+-                    paymentMethod === 'payos' 
+-                    ? 'bg-gradient-to-br from-[#00B14F] to-[#008039] text-white shadow-md shadow-green-500/30' 
+-                    : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#00B14F] group-hover:shadow-sm'
+-                  }`}>
++                  <div className={`p-3.5 rounded-2xl transition-all duration-300 ${paymentMethod === 'payos'
++                      ? 'bg-gradient-to-br from-[#00B14F] to-[#008039] text-white shadow-md shadow-green-500/30'
++                      : 'bg-white text-gray-400 border border-gray-200 group-hover:text-[#00B14F] group-hover:shadow-sm'
++                    }`}>
+                     <QrCode size={24} />
+                   </div>
+                   <div className="flex flex-col pt-1">
+@@ -322,114 +585,204 @@ const Checkout = () => {
+         {/* ================= Cß╗ÿT PHß║óI: T├ôM Tß║«T ─É╞áN H├ÇNG ================= */}
+         <aside className="w-full lg:w-[420px] shrink-0 h-fit">
+           <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 sticky top-28">
+-            <h2 className="text-xl font-black mb-6 border-b border-dashed border-gray-200 pb-4 flex items-center justify-between">
+-              <span className="flex items-center gap-2"><Receipt className="text-[#F27124]" size={24} /> H├│a ─æ╞ín</span>
+-              <span className="bg-orange-100 text-[#F27124] text-xs font-black px-3 py-1 rounded-full">{cart.items.length} m├│n</span>
++            <h2 className="text-xl font-black mb-2 border-b border-dashed border-gray-200 pb-4 flex items-center justify-between">
++              <span className="flex items-center gap-2"><Receipt className="text-[#F27124]" size={24} /> Chß╗ìn m├│n thanh to├ín</span>
++              <button type="button" onClick={selectAllItems} className="text-xs font-bold text-[#F27124] hover:underline">
++                Chß╗ìn tß║Ñt cß║ú
++              </button>
+             </h2>
+-            
+-            {/* DANH S├üCH M├ôN */}
+-            <div className="space-y-4 mb-6 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+-              {cart.items.map(i => (
+-                <div key={i.menuItem?._id} className="flex flex-col py-4 border-b border-gray-50 last:border-0 gap-3">
+-                  <div className="flex items-center gap-4">
+-                    <img src={i.menuItem?.imageUrl || 'https://via.placeholder.com/100'} alt={i.menuItem?.name} className="w-16 h-16 rounded-2xl object-cover shadow-sm border border-gray-100 shrink-0" />
+-                    <div className="flex-1">
+-                      <p className="font-bold text-gray-900 text-sm leading-tight mb-1">{i.menuItem?.name}</p>
+-                      <p className="text-[#F27124] font-black text-sm">{i.menuItem?.price?.toLocaleString()}─æ</p>
+-                    </div>
++            {selectedVendorCount > 1 && (
++              <p className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 mb-4">
++                {selectedVendorCount} quß║ºy ΓÇö sß║╜ tß║ío {selectedVendorCount} ─æ╞ín, mß╗ùi quß║ºy mß╗Öt m├ú QR/OTP ri├¬ng
++              </p>
++            )}
++
++            <div className="space-y-5 mb-6 max-h-[380px] overflow-y-auto custom-scrollbar pr-2">
++              {groupedCart.map((group) => {
++                const groupIds = group.items.map(getCartItemMenuId).filter(Boolean);
++                const groupSelected = groupIds.length > 0 && groupIds.every((id) => selectedIds.includes(id));
++                const groupPartial = groupIds.some((id) => selectedIds.includes(id)) && !groupSelected;
++                return (
++                  <div key={group.vendorId} className="rounded-2xl border border-gray-100 overflow-hidden">
++                    <button
++                      type="button"
++                      onClick={() => toggleVendorSelection(group)}
++                      className="w-full flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100 text-left hover:bg-orange-50/50 transition-colors cursor-pointer"
++                    >
++                      {groupSelected ? <CheckSquare size={18} className="text-[#F27124] shrink-0" /> : groupPartial ? <CheckSquare size={18} className="text-orange-300 shrink-0" /> : <Square size={18} className="text-gray-400 shrink-0" />}
++                      <Store size={16} className="text-[#F27124] shrink-0" />
++                      <span className="font-black text-sm text-gray-900 flex-1">{group.vendorName}</span>
++                    </button>
++                    {group.items.map((i) => {
++                      const itemId = getCartItemMenuId(i);
++                      const checked = isItemSelected(itemId);
++                      return (
++                        <div key={itemId || i.menuItem?.name} className={`flex flex-col py-3 px-3 border-b border-gray-50 last:border-0 gap-2 ${checked ? '' : 'opacity-60'}`}>
++                          <label className="flex items-center gap-3 cursor-pointer select-none">
++                            <input
++                              type="checkbox"
++                              checked={checked}
++                              onChange={() => toggleItemSelection(itemId)}
++                              className="w-5 h-5 shrink-0 accent-[#F27124] cursor-pointer rounded border-gray-300"
++                            />
++                            <img src={i.menuItem?.imageUrl || 'https://via.placeholder.com/100'} alt={i.menuItem?.name} className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0 pointer-events-none" />
++                            <div className="flex-1 min-w-0">
++                              <p className="font-bold text-gray-900 text-sm leading-tight truncate">{i.menuItem?.name}</p>
++                              <p className="text-[#F27124] font-black text-sm">{i.menuItem?.price?.toLocaleString()}─æ</p>
++                            </div>
++                          </label>
++                          <div className="flex items-center justify-between bg-gray-50 p-2 rounded-xl border border-gray-100 ml-8">
++                            <div className="flex items-center">
++                              <button type="button" onClick={() => handleUpdateQuantity(itemId, i.quantity, -1)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-600 shadow-sm hover:bg-orange-50 hover:text-[#F27124] transition-colors">
++                                {i.quantity === 1 ? <Trash2 size={14} className="text-red-500" /> : <Minus size={14} />}
++                              </button>
++                              <span className="w-10 text-center font-black text-gray-900">{i.quantity}</span>
++                              <button type="button" onClick={() => handleUpdateQuantity(itemId, i.quantity, 1)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F27124] text-white shadow-sm hover:bg-[#D95F1B] transition-colors">
++                                <Plus size={14} />
++                              </button>
++                            </div>
++                            <div className="flex items-center gap-3">
++                              <span className="font-black text-gray-900">{(i.menuItem?.price * i.quantity).toLocaleString()}─æ</span>
++                              <button type="button" onClick={() => handleRemoveItem(itemId)} className="text-gray-300 hover:text-red-500 transition-colors">
++                                <Trash2 size={16} />
++                              </button>
++                            </div>
++                          </div>
++                        </div>
++                      );
++                    })}
+                   </div>
+-                  
+-                  <div className="flex items-center justify-between bg-gray-50 p-2 rounded-xl border border-gray-100">
+-                    <div className="flex items-center">
+-                      <button 
+-                        onClick={() => handleUpdateQuantity(i.menuItem?._id, i.quantity, -1)}
+-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-600 shadow-sm hover:bg-orange-50 hover:text-[#F27124] transition-colors"
+-                      >
+-                        {i.quantity === 1 ? <Trash2 size={14} className="text-red-500" /> : <Minus size={14} />}
+-                      </button>
+-                      <span className="w-10 text-center font-black text-gray-900">{i.quantity}</span>
+-                      <button 
+-                        onClick={() => handleUpdateQuantity(i.menuItem?._id, i.quantity, 1)}
+-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F27124] text-white shadow-sm hover:bg-[#D95F1B] transition-colors"
+-                      >
+-                        <Plus size={14} />
+-                      </button>
+-                    </div>
+-                    
+-                    <div className="flex items-center gap-4">
+-                      <span className="font-black text-gray-900 text-lg">{(i.menuItem?.price * i.quantity).toLocaleString()}─æ</span>
+-                      <button 
+-                        onClick={() => handleRemoveItem(i.menuItem?._id)}
+-                        className="text-gray-300 hover:text-red-500 transition-colors"
+-                      >
+-                        <Trash2 size={18} />
+-                      </button>
+-                    </div>
++                );
++              })}
++            </div>
++
++            <div className="mb-4 rounded-2xl border border-green-100 bg-green-50/50 p-4">
++              <label className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-2">
++                <Gift size={16} className="text-green-600" /> {t('checkout.voucher')}
++              </label>
++              <input
++                value={voucherCode}
++                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
++                placeholder={t('checkout.voucherPlaceholder')}
++                className="w-full border border-green-200 bg-white rounded-xl px-4 py-2.5 text-sm font-mono uppercase focus:ring-2 focus:ring-[#F27124]/30 outline-none"
++              />
++              <p className="text-xs text-gray-500 mt-2">{t('checkout.voucherHint')}</p>
++              {voucherWarning && (
++                <p className="text-xs text-amber-700 mt-2 font-bold bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
++                  {voucherWarning}
++                </p>
++              )}
++              {selectedVoucher?.vendor && !voucherWarning && voucherDiscount > 0 && (
++                <p className="text-xs text-green-700 mt-2 font-bold">
++                  {t('checkout.voucherAppliesTo', { vendor: selectedVoucher.vendor?.name || '' })}
++                  {' '}(ΓêÆ{voucherDiscount.toLocaleString('vi-VN')}─æ)
++                </p>
++              )}
++              <div className="mt-3">
++                <p className="text-xs font-bold text-gray-600 mb-2">{t('checkout.voucherQuickPick')}</p>
++                {myVouchers.length > 0 ? (
++                  <div className="flex flex-wrap gap-2">
++                    {myVouchers.slice(0, 8).map((v) => {
++                      const vid = getVoucherVendorId(v);
++                      const applicable = selectedVendorIds.has(vid);
++                      const sub = vendorSubtotal(vid);
++                      const meetsMin = sub >= (v.minOrder || 0);
++                      const isSelected = voucherCode.trim().toUpperCase() === v.code;
++                      const isReady = applicable && meetsMin && sub > 0;
++
++                      return (
++                        <button
++                          key={v._id}
++                          type="button"
++                          onClick={() => setVoucherCode(v.code)}
++                          className={`text-xs font-bold px-3 py-2 rounded-xl border-2 transition ${isSelected
++                              ? 'bg-green-100 border-green-500 text-green-900 shadow-sm'
++                              : isReady
++                                ? 'bg-white border-green-300 text-gray-800 hover:bg-green-50 hover:border-green-400'
++                                : 'bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100'
++                            }`}
++                        >
++                          <span className="font-mono">{v.code}</span>
++                          <span className="text-[#F27124] ml-1">ΓêÆ{Number(v.discountAmount).toLocaleString('vi-VN')}─æ</span>
++                          <span className="block text-[10px] font-semibold mt-0.5 opacity-80">
++                            @ {v.vendor?.name}
++                            {!applicable && ' ┬╖ ch╞░a chß╗ìn m├│n quß║ºy n├áy'}
++                            {applicable && !meetsMin && ` ┬╖ tß╗æi thiß╗âu ${Number(v.minOrder).toLocaleString('vi-VN')}─æ`}
++                          </span>
++                        </button>
++                      );
++                    })}
+                   </div>
+-                </div>
+-              ))}
++                ) : (
++                  <p className="text-xs text-amber-700 font-medium">{t('checkout.voucherEmpty')}</p>
++                )}
++              </div>
+             </div>
+ 
+-            {/* Tß╗öNG TIß╗ÇN */}
+             <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 mb-6">
+               <div className="flex justify-between items-center mb-2">
+-                <span className="text-gray-500 font-bold text-sm">Tß║ím t├¡nh</span>
+-                <span className="font-black text-gray-700">{cart.totalPrice?.toLocaleString()}─æ</span>
++                <span className="text-gray-500 font-bold text-sm">─É├ú chß╗ìn ({selectedItems.length} m├│n)</span>
++                <span className="font-black text-gray-700">{selectedTotal?.toLocaleString()}─æ</span>
+               </div>
+               <div className="flex justify-between items-center mb-3">
+                 <span className="text-gray-500 font-bold text-sm">Ph├¡ dß╗ïch vß╗Ñ</span>
+                 <span className="font-black text-green-500 text-sm">Miß╗àn ph├¡</span>
+               </div>
++              {voucherDiscount > 0 && (
++                <div className="flex justify-between items-center mb-3">
++                  <span className="text-gray-500 font-bold text-sm">{t('checkout.voucherDiscount')}</span>
++                  <span className="font-black text-green-600 text-sm">ΓêÆ{voucherDiscount.toLocaleString('vi-VN')}─æ</span>
++                </div>
++              )}
+               <div className="flex justify-between items-end pt-3 border-t border-dashed border-gray-200 mt-2">
+-                <span className="font-bold text-gray-900">Tß╗òng cß╗Öng</span>
+-                <span className="text-3xl font-black text-[#F27124]">{cart.totalPrice?.toLocaleString()}<span className="text-lg text-[#F27124] ml-1">─æ</span></span>
++                <span className="font-bold text-gray-900">Tß╗òng thanh to├ín</span>
++                <span className="text-3xl font-black text-[#F27124]">{payableTotal?.toLocaleString()}<span className="text-lg text-[#F27124] ml-1">─æ</span></span>
+               </div>
+             </div>
+ 
+-            {cart.vendorOpen === false && (
++            {closedSelectedVendor && (
+               <div className="p-4 rounded-xl mb-6 bg-red-50 border border-red-100 flex items-start gap-3">
+                 <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                 <div>
+-                  <p className="font-bold text-red-600 mb-0.5">Qu├ín ─æ├ú ─æ├│ng cß╗¡a</p>
+-                  <p className="text-xs text-red-500 font-medium">{cart.vendorStatusMessage || 'Kh├┤ng thß╗â ─æß║╖t ─æ╞ín ngo├ái giß╗¥ phß╗Ñc vß╗Ñ cß╗ºa quß║ºy.'}</p>
++                  <p className="font-bold text-red-600 mb-0.5">Quß║ºy ─æ├ú chß╗ìn kh├┤ng phß╗Ñc vß╗Ñ</p>
++                  <p className="text-xs text-red-500 font-medium">{closedSelectedVendor}</p>
+                 </div>
+               </div>
+             )}
+ 
+-            {/* Cß║óNH B├üO Sß╗É D╞» */}
+-            {paymentMethod === 'wallet' && !isEnoughBalance && (
++            {paymentMethod === 'wallet' && selectedItems.length > 0 && !isEnoughBalance && (
+               <div className="p-4 rounded-xl mb-6 bg-red-50 border border-red-100 flex items-start gap-3 animate-in shake">
+                 <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                 <div>
+                   <p className="font-bold text-red-600 mb-0.5">Sß╗æ d╞░ kh├┤ng ─æß╗º!</p>
+-                  <p className="text-xs text-red-500 font-medium">Bß║ín cß║ºn nß║íp th├¬m <span className="font-black">{(cart.totalPrice - balance).toLocaleString()}─æ</span> v├áo V├¡ ─æß╗â ─æß║╖t ─æ╞ín.</p>
++                  <p className="text-xs text-red-500 font-medium">Bß║ín cß║ºn nß║íp th├¬m <span className="font-black">{(payableTotal - balance).toLocaleString()}─æ</span> v├áo V├¡.</p>
+                 </div>
+               </div>
+             )}
+ 
+-            {/* N├ÜT THANH TO├üN */}
+-            <button 
++            <button
+               onClick={handlePlaceOrder}
+-              disabled={isProcessing || cart.vendorOpen === false || (paymentMethod === 'wallet' && !isEnoughBalance)}
+-              className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-lg transition-all shadow-xl ${
+-                cart.vendorOpen === false || (paymentMethod === 'wallet' && !isEnoughBalance)
+-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none border border-gray-200'
+-                : paymentMethod === 'payos' 
+-                  ? 'bg-gradient-to-r from-[#00B14F] to-[#009140] text-white shadow-green-500/30 hover:scale-[1.02] active:scale-95'
+-                  : 'bg-gradient-to-r from-[#F27124] to-[#ff985e] text-white shadow-orange-500/30 hover:scale-[1.02] active:scale-95'
+-              }`}
++              disabled={isProcessing || selectedItems.length === 0 || !!closedSelectedVendor || availableSlots.length === 0 || !pickupSlot || (paymentMethod === 'wallet' && !isEnoughBalance)}
++              className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-lg transition-all shadow-xl ${selectedItems.length === 0 || closedSelectedVendor || (paymentMethod === 'wallet' && !isEnoughBalance)
++                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none border border-gray-200'
++                  : paymentMethod === 'payos'
++                    ? 'bg-gradient-to-r from-[#00B14F] to-[#009140] text-white shadow-green-500/30 hover:scale-[1.02] active:scale-95'
++                    : 'bg-gradient-to-r from-[#F27124] to-[#ff985e] text-white shadow-orange-500/30 hover:scale-[1.02] active:scale-95'
++                }`}
+             >
+               {isProcessing ? <Loader2 className="animate-spin" size={24} /> : (
+                 <>
+-                  {cart.vendorOpen === false ? 'QU├üN ─É├â ─É├ôNG Cß╗¼A' : paymentMethod === 'payos' ? <><QrCode size={24} /> QU├ëT M├â THANH TO├üN</> : (
+-                    isEnoughBalance ? <><CheckCircle2 size={24} /> X├üC NHß║¼N ─Éß║╢T ─É╞áN</> : <><Wallet size={24} /> Nß║áP TH├èM TIß╗ÇN</>
++                  {selectedItems.length === 0 ? 'CHß╗îN M├ôN ─Éß╗é THANH TO├üN' : closedSelectedVendor ? 'QUß║ªY KH├öNG PHß╗ñC Vß╗ñ' : paymentMethod === 'payos' ? (
++                    <><QrCode size={24} /> QU├ëT M├â THANH TO├üN{selectedVendorCount > 1 ? ` (${selectedVendorCount} ─É╞áN)` : ''}</>
++                  ) : (
++                    isEnoughBalance ? <><CheckCircle2 size={24} /> THANH TO├üN{selectedVendorCount > 1 ? ` ${selectedVendorCount} ─É╞áN` : ''}</> : <><Wallet size={24} /> Nß║áP TH├èM TIß╗ÇN</>
+                   )}
+                 </>
+               )}
+             </button>
+           </div>
+         </aside>
+-        
++
+       </div>
+     </div>
+   );

@@ -7,9 +7,10 @@ import {
 } from 'lucide-react';
 import VendorRevenueHistory from '../../../components/vendor/VendorRevenueHistory';
 
-const VendorWallet = () => {
+const VendorWallet = ({ refreshKey = 0 }) => {
   useContext(AuthContext);
   const [summary, setSummary] = useState({ balance: 0, bankAccount: {}, transactions: [] });
+  const [payoutAlerts, setPayoutAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,8 +18,15 @@ const VendorWallet = () => {
 
   const loadWallet = async () => {
     try {
-      const res = await api.get('/transactions/vendor-wallet/me');
-      setSummary(res.data);
+      const [walletRes, notiRes] = await Promise.all([
+        api.get('/transactions/vendor-wallet/me'),
+        api.get('/vendor/notifications'),
+      ]);
+      setSummary(walletRes.data);
+      const alerts = (notiRes.data?.notifications || []).filter(
+        (n) => n.type === 'PAYOUT_CONFIRMED' && !n.isRead
+      );
+      setPayoutAlerts(alerts);
     } catch (err) {
       console.error('Lỗi tải ví quầy:', err);
     } finally {
@@ -28,7 +36,7 @@ const VendorWallet = () => {
 
   useEffect(() => {
     loadWallet();
-  }, []);
+  }, [refreshKey]);
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
@@ -63,11 +71,28 @@ const VendorWallet = () => {
     return { label: type, class: 'portal-muted bg-gray-500/10' };
   };
 
-  const renderStatus = (status) => {
-    if (status === 'PENDING') return <span className="text-yellow-400 text-xs font-bold flex items-center gap-1"><Clock size={12}/> Chờ admin duyệt</span>;
-    if (status === 'SUCCESS') return <span className="text-green-400 text-xs font-bold flex items-center gap-1"><CheckCircle2 size={12}/> Hoàn tất</span>;
-    if (status === 'FAILED') return <span className="text-red-400 text-xs font-bold flex items-center gap-1"><XCircle size={12}/> Từ chối</span>;
+  const renderStatus = (tx) => {
+    if (tx.status === 'PENDING') return <span className="text-yellow-400 text-xs font-bold flex items-center gap-1"><Clock size={12} /> Chờ admin duyệt</span>;
+    if (tx.status === 'SUCCESS' && tx.type === 'PAYOUT') {
+      return (
+        <div className="text-right">
+          <span className="text-green-400 text-xs font-bold flex items-center gap-1 justify-end"><CheckCircle2 size={12} /> Đã chuyển khoản</span>
+          {tx.transferRef && <p className="text-[10px] text-green-300/80 mt-0.5">Mã GD: {tx.transferRef}</p>}
+        </div>
+      );
+    }
+    if (tx.status === 'SUCCESS') return <span className="text-green-400 text-xs font-bold flex items-center gap-1"><CheckCircle2 size={12} /> Hoàn tất</span>;
+    if (tx.status === 'FAILED') return <span className="text-red-400 text-xs font-bold flex items-center gap-1"><XCircle size={12} /> Từ chối</span>;
     return null;
+  };
+
+  const dismissPayoutAlert = async (id) => {
+    try {
+      await api.put(`/vendor/notifications/${id}/read`);
+      setPayoutAlerts((prev) => prev.filter((n) => n._id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   if (loading) {
@@ -97,11 +122,35 @@ const VendorWallet = () => {
         </button>
       </div>
 
+      {payoutAlerts.length > 0 && (
+        <div className="space-y-3">
+          {payoutAlerts.map((alert) => (
+            <div
+              key={alert._id}
+              className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 flex gap-3"
+            >
+              <CheckCircle2 className="text-green-400 shrink-0 mt-0.5" size={22} />
+              <div className="flex-1 min-w-0">
+                <p className="font-black text-green-300">{alert.title}</p>
+                <p className="text-sm text-green-100/90 mt-1">{alert.message}</p>
+                <button
+                  type="button"
+                  onClick={() => dismissPayoutAlert(alert._id)}
+                  className="mt-2 text-xs font-bold text-green-400 hover:underline"
+                >
+                  Đã kiểm tra sao kê — ẩn thông báo
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex gap-3 text-sm text-blue-200">
         <Info size={20} className="shrink-0 text-blue-400" />
         <div>
           <p className="font-bold text-blue-100 mb-1">Quy trình rút tiền</p>
-          <p>Khi khách hàng thanh toán, tiền thực tế vào quỹ Admin (VNPay/chuyển khoản). Ví của bạn ghi nhận doanh thu để rút. Admin duyệt lệnh rút và chuyển khoản vào TK ngân hàng của bạn.</p>
+          <p>Khi sinh viên thanh toán, tiền thực tế vào quỹ Admin (VNPay/chuyển khoản). Ví của bạn ghi nhận doanh thu để rút. Admin duyệt lệnh rút, chuyển khoản và gửi thông báo xác nhận — bạn kiểm tra sao kê và mục Thông báo quầy.</p>
         </div>
       </div>
 
@@ -167,7 +216,7 @@ const VendorWallet = () => {
                     <p className={`font-black ${tx.type === 'PAYOUT' && tx.status === 'PENDING' ? 'text-orange-400' : 'text-[var(--portal-text)]'}`}>
                       {tx.type === 'PAYOUT' ? '-' : '+'}{tx.amount?.toLocaleString()}đ
                     </p>
-                    {renderStatus(tx.status)}
+                    {renderStatus(tx)}
                   </div>
                 </div>
               );

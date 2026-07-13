@@ -5,7 +5,7 @@ import { UploadCloud, PlusCircle, Store } from 'lucide-react';
 
 const VendorDashboard = () => {
   const { user } = useContext(AuthContext);
-  
+
   // States thông tin quán
   const [myVendor, setMyVendor] = useState(null);
   const [loadingVendor, setLoadingVendor] = useState(true);
@@ -22,14 +22,14 @@ const VendorDashboard = () => {
   useEffect(() => {
     const fetchMyVendor = async () => {
       if (!user || (user.role !== 'vendor' && user.role !== 'admin')) return;
-      
+
       try {
         // Giả sử API /vendors trả về danh sách tất cả các quán
         const res = await api.get('/vendors');
-        
+
         // Tìm quán do user này làm chủ
         const myStall = res.data.find(v => v.owner === user._id);
-        
+
         if (myStall) {
           setMyVendor(myStall);
         }
@@ -47,13 +47,13 @@ const VendorDashboard = () => {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file);
-      setImagePreview(URL.createObjectURL(file)); 
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Kiểm tra bảo mật Frontend
     if (user?.role !== 'vendor' && user?.role !== 'admin') {
       return alert('Chỉ chủ quán mới được thêm món ăn!');
@@ -84,22 +84,22 @@ const VendorDashboard = () => {
         name,
         price: Number(price),
         category: category || 'Đồ ăn',
-        imageUrl: imageUrl, 
+        imageUrl: imageUrl,
         vendorId: myVendor._id, // 👈 ĐÂY CHÍNH LÀ ĐIỂM CHUẨN XÁC: Gắn ID của Gian Hàng!
-        dailyQuota: 50 
+        dailyQuota: 50
       };
 
       await api.post('/menuitems', newItemData);
-      
+
       alert('🎉 Thêm món ăn vào quán thành công!');
-      
+
       // Reset Form
       setName('');
       setPrice('');
       setCategory('');
       setImageFile(null);
       setImagePreview(null);
-      
+
     } catch (error) {
       alert(error.response?.data?.message || 'Có lỗi xảy ra khi thêm món!');
     } finally {
@@ -127,26 +127,26 @@ const VendorDashboard = () => {
             <PlusCircle className="text-[#F27124]" size={32} />
             <h2 className="text-2xl font-extrabold text-gray-800">Thêm Món Mới</h2>
           </div>
-          
+
           {/* HIỂN THỊ TÊN QUÁN ĐỂ CHỦ QUÁN YÊN TÂM */}
           {myVendor ? (
             <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-xl text-[#F27124] font-bold">
               <Store size={18} /> Quản lý: {myVendor.name}
             </div>
           ) : (
-             <div className="text-red-500 text-sm font-bold bg-red-50 px-4 py-2 rounded-xl">
-               ⚠️ Tài khoản chưa được cấp gian hàng
-             </div>
+            <div className="text-red-500 text-sm font-bold bg-red-50 px-4 py-2 rounded-xl">
+              ⚠️ Tài khoản chưa được cấp gian hàng
+            </div>
           )}
         </div>
-        
+
         {/* Phần FORM giống y hệt như cũ, mình đã rút gọn bớt mã HTML ở đây để bạn dễ nhìn */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Các input name, price, category... */}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-bold mb-2 text-gray-700">Tên món ăn</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="VD: Bún chả FPT" className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-2 focus:ring-[#F27124]" />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="VD: Bún chả" className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-2 focus:ring-[#F27124]" />
             </div>
             <div>
               <label className="block text-sm font-bold mb-2 text-gray-700">Giá bán (VNĐ)</label>

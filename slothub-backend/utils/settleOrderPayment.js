@@ -54,39 +54,62 @@ const settleOrderPayment = async ({ orderId, studentUserId, vendorDocId, totalAm
 };
 
 /**
- * Hoàn tiền khi hủy đơn đã thanh toán
+ * Hoàn tiền khi hủy đơn đã thanh toán (toàn bộ hoặc một phần)
  */
-const reverseOrderPayment = async (order) => {
+const reverseOrderPayment = async (order, options = {}) => {
+    const refundAmount = options.refundAmount != null
+        ? Math.min(order.totalPrice, Math.max(0, Math.round(options.refundAmount)))
+        : order.totalPrice;
+
+    if (refundAmount <= 0) return { refundAmount: 0 };
+
     const vendorShare = Math.round(order.totalPrice * (1 - PLATFORM_FEE_RATE));
     const platformShare = order.totalPrice - vendorShare;
+    const ratio = refundAmount / order.totalPrice;
+    const refundVendor = Math.round(vendorShare * ratio);
+    const refundPlatform = refundAmount - refundVendor;
 
     const student = await User.findById(order.user);
     if (student) {
-        student.walletBalance += order.totalPrice;
+        student.walletBalance += refundAmount;
         await student.save();
         await logStudentWallet({
             userId: order.user,
-            amount: order.totalPrice,
+            amount: refundAmount,
             balanceAfter: student.walletBalance,
             type: 'REFUND',
             orderId: order._id,
-            description: `Hoàn tiền đơn #${String(order._id).slice(-6)}`
+            description: options.description
+                || `Hoàn tiền đơn #${String(order._id).slice(-6)}`
         });
     }
 
     const vendor = await Vendor.findById(order.vendor);
-    if (vendor?.owner) {
+    if (vendor?.owner && refundVendor > 0) {
         await User.findByIdAndUpdate(vendor.owner, {
-            $inc: { walletBalance: -vendorShare }
+            $inc: { walletBalance: -refundVendor }
         });
     }
 
     const admin = await User.findOne({ role: 'admin' });
-    if (admin && platformShare > 0) {
+    if (admin && refundPlatform > 0) {
         await User.findByIdAndUpdate(admin._id, {
-            $inc: { walletBalance: -platformShare }
+            $inc: { walletBalance: -refundPlatform }
         });
     }
+
+    await Transaction.create({
+        orderId: order._id,
+        userId: order.user,
+        vendorId: order.vendor,
+        amount: refundAmount,
+        type: 'REFUND',
+        status: 'SUCCESS',
+        description: options.description
+            || `Hoàn tiền đơn #${String(order._id).slice(-6)}`
+    });
+
+    return { refundAmount, refundVendor, refundPlatform };
 };
 
 module.exports = { settleOrderPayment, reverseOrderPayment, PLATFORM_FEE_RATE };

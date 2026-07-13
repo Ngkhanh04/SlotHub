@@ -94,7 +94,7 @@ const ChatWidget = () => {
               </div>
               <div>
                 <h3 className="font-black text-xl leading-tight tracking-wide">{t('chat.title')}</h3>
-                <p className="text-xs text-orange-50 font-medium opacity-90">Trợ lý Canteen FPT</p>
+                <p className="text-xs text-orange-50 font-medium opacity-90">Trợ lý CanTeen</p>
               </div>
             </div>
             <button 

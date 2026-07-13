@@ -2,7 +2,8 @@ const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const Vendor = require('../models/Vendor');
 const { notifyAdmin } = require('../utils/adminNotify');
-const { logStudentWallet, logAudit } = require('../utils/persistence');
+const { notifyVendorPayoutConfirmed } = require('../utils/vendorNotify');
+const { logStudentWallet, logAudit, notifyStudent } = require('../utils/persistence');
 const { studentHasBankAccount } = require('../utils/studentBankAccount');
 
 const isVendorRole = (role) => ['vendor', 'vendor_owner'].includes(role);
@@ -161,7 +162,7 @@ const updateTransactionStatus = async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Thao tác bị từ chối!' });
 
-        const { status } = req.body; 
+        const { status, transferRef, adminNote } = req.body; 
         const transactionId = req.params.id;
 
         const transaction = await Transaction.findById(transactionId);
@@ -171,6 +172,14 @@ const updateTransactionStatus = async (req, res) => {
 
         const user = await User.findById(transaction.userId);
         if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản!' });
+
+        if (status === 'SUCCESS' && (transaction.type === 'PAYOUT' || transaction.type === 'WITHDRAW')) {
+            if (!transferRef?.trim() && !adminNote?.trim()) {
+                return res.status(400).json({
+                    message: 'Vui lòng nhập mã giao dịch hoặc ghi chú xác nhận đã chuyển khoản trước khi duyệt.',
+                });
+            }
+        }
 
         if (status === 'SUCCESS') {
             if (transaction.type === 'DEPOSIT') {
@@ -207,7 +216,25 @@ const updateTransactionStatus = async (req, res) => {
         }
 
         transaction.status = status;
+        transaction.processedAt = new Date();
+        if (transferRef?.trim()) transaction.transferRef = transferRef.trim();
+        if (adminNote?.trim()) transaction.adminNote = adminNote.trim();
         await transaction.save();
+
+        if (status === 'SUCCESS') {
+            if (transaction.type === 'PAYOUT') {
+                await notifyVendorPayoutConfirmed(req, transaction, user);
+            } else if (transaction.type === 'WITHDRAW') {
+                const amount = Number(transaction.amount || 0).toLocaleString('vi-VN');
+                const refLine = transaction.transferRef ? ` Mã GD: ${transaction.transferRef}.` : '';
+                await notifyStudent(req, {
+                    userId: user._id,
+                    title: 'Đã chuyển khoản rút tiền',
+                    message: `Admin xác nhận đã chuyển ${amount}đ vào TK của bạn.${refLine} Vui lòng kiểm tra sao kê.`,
+                    type: 'WITHDRAW_CONFIRMED',
+                });
+            }
+        }
 
         await logAudit({
             actor: req.user.id,
@@ -218,7 +245,16 @@ const updateTransactionStatus = async (req, res) => {
             metadata: { type: transaction.type, amount: transaction.amount }
         });
 
-        res.status(200).json({ message: `Đã ${status === 'SUCCESS' ? 'PHÊ DUYỆT' : 'TỪ CHỐI'} lệnh tiền!`, transaction });
+        res.status(200).json({
+            message: status === 'SUCCESS'
+                ? (transaction.type === 'PAYOUT'
+                    ? 'Đã duyệt và gửi thông báo xác nhận chuyển khoản cho chủ quầy!'
+                    : transaction.type === 'WITHDRAW'
+                        ? 'Đã duyệt và gửi thông báo xác nhận chuyển khoản cho sinh viên!'
+                        : 'Đã PHÊ DUYỆT lệnh tiền!')
+                : 'Đã TỪ CHỐI lệnh tiền!',
+            transaction,
+        });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi phê duyệt giao dịch', error: error.message });
     }

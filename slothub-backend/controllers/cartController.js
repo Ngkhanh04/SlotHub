@@ -5,34 +5,43 @@ const { getVendorStatus } = require('../utils/vendorHours');
 
 const CART_POPULATE = {
     path: 'items.menuItem',
-    populate: { path: 'vendor', select: 'name openTime closeTime isActive' }
+    populate: { path: 'vendor', select: 'name openTime closeTime isActive isPaused pauseReason' }
 };
 
 const buildCartResponse = (cart) => {
     let totalPrice = 0;
-    let vendorOpen = true;
-    let vendorStatusMessage = '';
+    const vendorStatuses = {};
 
     cart.items.forEach((i) => {
         if (i.menuItem?.price) totalPrice += i.menuItem.price * i.quantity;
     });
 
-    const seen = new Set();
     for (const i of cart.items) {
         const v = i.menuItem?.vendor;
         if (!v || typeof v !== 'object') continue;
         const vid = String(v._id);
-        if (seen.has(vid)) continue;
-        seen.add(vid);
-        const status = getVendorStatus(v);
-        if (!status.isOpen) {
-            vendorOpen = false;
-            vendorStatusMessage = status.message;
-            break;
-        }
+        if (vendorStatuses[vid]) continue;
+        vendorStatuses[vid] = {
+            ...getVendorStatus(v),
+            name: v.name || 'Quầy'
+        };
     }
 
-    return { ...cart.toObject(), totalPrice, vendorOpen, vendorStatusMessage };
+    const vendorIds = Object.keys(vendorStatuses);
+    const anyOpen = vendorIds.length === 0 || vendorIds.some((vid) => vendorStatuses[vid].isOpen);
+    const allClosed = vendorIds.length > 0 && vendorIds.every((vid) => !vendorStatuses[vid].isOpen);
+    const vendorOpen = !allClosed;
+    const vendorStatusMessage = allClosed
+        ? vendorIds.map((vid) => vendorStatuses[vid].message).find(Boolean) || 'Các quầy trong giỏ đã đóng cửa.'
+        : '';
+
+    return {
+        ...cart.toObject(),
+        totalPrice,
+        vendorOpen,
+        vendorStatusMessage,
+        vendorStatuses
+    };
 };
 
 // 1. Lấy giỏ hàng của tôi

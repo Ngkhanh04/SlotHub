@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../api/axios';
-import { Bell, ShoppingBag, CheckCircle2, Loader2, Info, Star } from 'lucide-react';
+import { Bell, ShoppingBag, CheckCircle2, Loader2, Info, Star, Wallet } from 'lucide-react';
 
 const timeAgo = (dateStr) => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -12,7 +12,7 @@ const timeAgo = (dateStr) => {
   return `${Math.floor(hrs / 24)} ngày trước`;
 };
 
-const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
+const VendorNotifications = ({ onGoOrders, onGoMenu, onGoWallet }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -48,6 +48,7 @@ const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
     if (!noti.isRead) await handleMarkAsRead(noti._id);
     if (noti.type === 'NEW_ORDER' && onGoOrders) onGoOrders();
     if (noti.type === 'NEW_REVIEW' && onGoMenu) onGoMenu();
+    if (noti.type === 'PAYOUT_CONFIRMED' && onGoWallet) onGoWallet();
   };
 
   const renderIcon = (type) => {
@@ -62,6 +63,13 @@ const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
       return (
         <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20 shadow-lg">
           <Star size={20} className="fill-amber-400" />
+        </div>
+      );
+    }
+    if (type === 'PAYOUT_CONFIRMED') {
+      return (
+        <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-400 border border-green-500/20 shadow-lg">
+          <Wallet size={20} />
         </div>
       );
     }
@@ -96,7 +104,7 @@ const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
           </div>
           <div>
             <h2 className="text-2xl font-black tracking-tight">Thông báo quầy</h2>
-            <p className="text-sm portal-muted font-medium">Đơn mới từ khách hàng và cập nhật hệ thống</p>
+            <p className="text-sm portal-muted font-medium">Đơn mới, chuyển khoản rút tiền và cập nhật hệ thống</p>
           </div>
         </div>
         {unreadCount > 0 && (
@@ -115,7 +123,7 @@ const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
           <div className="portal-card border rounded-3xl border border-[var(--portal-border)] p-12 text-center">
             <ShoppingBag size={48} className="mx-auto text-gray-600 mb-4 opacity-40" />
             <p className="portal-muted font-bold">Chưa có thông báo nào</p>
-            <p className="text-sm portal-muted mt-2">Khi khách hàng đặt đơn, bạn sẽ thấy tại đây.</p>
+            <p className="text-sm portal-muted mt-2">Khi sinh viên đặt đơn hoặc Admin chuyển khoản rút tiền, bạn sẽ thấy tại đây.</p>
           </div>
         ) : (
           notifications.map((noti) => (
@@ -123,17 +131,21 @@ const VendorNotifications = ({ onGoOrders, onGoMenu }) => {
               key={noti._id}
               type="button"
               onClick={() => handleClick(noti)}
-              className={`w-full text-left portal-card border rounded-2xl border p-5 flex gap-4 items-start transition-all hover:border-[#F27124]/40 ${
-                noti.isRead ? 'border-[var(--portal-border)] opacity-70' : 'border-[#F27124]/30 shadow-lg shadow-orange-500/5'
-              }`}
+              className={`w-full text-left portal-card border rounded-2xl border p-5 flex gap-4 items-start transition-all hover:border-[#F27124]/40 ${noti.isRead
+                  ? 'border-[var(--portal-border)] opacity-70'
+                  : noti.type === 'PAYOUT_CONFIRMED'
+                    ? 'border-green-500/40 shadow-lg shadow-green-500/10'
+                    : 'border-[#F27124]/30 shadow-lg shadow-orange-500/5'
+                }`}
             >
               {renderIcon(noti.type)}
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between gap-2 items-start">
                   <h4 className={`font-black ${noti.isRead ? 'portal-muted' : 'text-[var(--portal-text)]'}`}>{noti.title}</h4>
                   {!noti.isRead && (
-                    <span className="shrink-0 text-[10px] font-black uppercase bg-[#F27124] text-white px-2 py-0.5 rounded-md">
-                      Mới
+                    <span className={`shrink-0 text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${noti.type === 'PAYOUT_CONFIRMED' ? 'bg-green-600 text-white' : 'bg-[#F27124] text-white'
+                      }`}>
+                      {noti.type === 'PAYOUT_CONFIRMED' ? 'Chuyển khoản' : 'Mới'}
                     </span>
                   )}
                 </div>

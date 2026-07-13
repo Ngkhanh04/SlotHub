@@ -3,19 +3,20 @@ const router = express.Router();
 const { protect } = require('../middlewares/authMiddleware');
 
 // Import đầy đủ các hàm từ Controller
-const { 
-    getAllMenuItems, 
-    getVendorMenu, 
+const {
+    getAllMenuItems,
+    getVendorMenu,
     getMenuItemById,
-    createMenuItem, 
+    createMenuItem,
     toggleItemAvailability,
-    createMenuItemReview
+    createMenuItemReview,
+    estimateCalories
 } = require('../controllers/menuItemController');
 
 // ================= ROUTE CÔNG KHAI (Không cần đăng nhập) =================
 
 // [GET] /api/menuitems -> Lấy tất cả món ăn (Dùng cho trang Home)
-router.get('/', getAllMenuItems); 
+router.get('/', getAllMenuItems);
 
 // [GET] /api/menuitems/vendor/:vendorId -> Xem menu của 1 quán cụ thể
 router.get('/vendor/:vendorId', getVendorMenu);
@@ -25,6 +26,9 @@ router.get('/:id', getMenuItemById);
 
 
 // ================= ROUTE BẢO MẬT (Yêu cầu đăng nhập) =================
+
+// [POST] Tự động ước lượng calo qua AI (Chủ quán)
+router.post('/estimate-calories', protect, estimateCalories);
 
 // [POST] Tạo món mới (Chủ quán)
 router.post('/', protect, createMenuItem);

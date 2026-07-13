@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
-const http = require('http');
+const connectDB = require('./config/db'); 
+const http = require('http'); 
 const { Server } = require('socket.io');
 
 dotenv.config();
@@ -15,17 +15,12 @@ const server = http.createServer(app);
 // ==========================================
 const io = new Server(server, {
     cors: {
-        // Đã sửa dòng origin và thêm credentials cho Socket.io
-        origin: [
-            "http://localhost:3000",
-            "https://ngkhanh04.github.io"
-        ],
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        credentials: true
+        origin: "*", 
+        methods: ["GET", "POST", "PUT", "DELETE"]
     }
 });
 
-app.set('socketio', io);
+app.set('socketio', io); 
 
 io.on('connection', (socket) => {
     console.log(`🔌 [Socket.io] Connected: ${socket.id}`);
@@ -46,15 +41,8 @@ io.on('connection', (socket) => {
 // ==========================================
 // 2. MIDDLEWARE & DB
 // ==========================================
-// Đã sửa cấu hình CORS cho Express
-app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://ngkhanh04.github.io'
-    ],
-    credentials: true
-}));
-app.use(express.json());
+app.use(cors());
+app.use(express.json()); 
 
 connectDB();
 
@@ -62,14 +50,14 @@ connectDB();
 // 3. ROUTES DECLARATION
 // ==========================================
 const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const uploadRoutes = require('./routes/uploadRoutes');
+const userRoutes = require('./routes/userRoutes'); 
+const uploadRoutes = require('./routes/uploadRoutes'); 
 const reviewRoutes = require('./routes/reviewRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 
-const vendorRoutes = require('./routes/vendorRoutes');
+const vendorRoutes = require('./routes/vendorRoutes'); 
 const menuItemRoutes = require('./routes/menuItemRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
@@ -82,7 +70,8 @@ const refundRoutes = require('./routes/refundRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const messageRoutes = require('./routes/messageRoutes');
-
+const ttsRoutes = require('./routes/ttsRoutes');
+const forumRoutes = require('./routes/forumRoutes');
 // --- MOUNT ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -94,7 +83,8 @@ app.use('/api/chat', chatRoutes);
 
 app.use('/api/vendor', vendorRoutes);
 
-app.use('/api/menuitems', menuItemRoutes);
+
+app.use('/api/menuitems', menuItemRoutes); 
 
 app.use('/api/orders', orderRoutes);
 
@@ -107,7 +97,8 @@ app.use('/api/refunds', refundRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/messages', messageRoutes);
-
+app.use('/api/tts', ttsRoutes);
+app.use('/api/forum', forumRoutes);
 // ==========================================
 // 4. CHẠY SERVER
 // ==========================================

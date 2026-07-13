@@ -7,10 +7,10 @@ const requestRefund = async (req, res) => {
     try {
         const { orderId } = req.params;
         const { reason } = req.body;
-        
+
         const order = await Order.findById(orderId);
         if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng!" });
-        
+
         if (order.paymentStatus !== 'Paid') {
             return res.status(400).json({ message: "Đơn hàng chưa thanh toán hoặc đã được hoàn tiền!" });
         }
@@ -42,7 +42,7 @@ const requestRefund = async (req, res) => {
         // BƯỚC 4: THÔNG BÁO REAL-TIME
         const io = req.app.get('socketio');
         if (io) {
-            io.emit(`notification_${order.user}`, { 
+            io.emit(`notification_${order.user}`, {
                 title: "Tiền đã về ví! 💰",
                 message: `Đã hoàn trả ${order.totalAmount.toLocaleString()}đ vào tài khoản SlotHub của bạn.`,
                 type: 'REFUND',
@@ -50,8 +50,8 @@ const requestRefund = async (req, res) => {
             });
         }
 
-        res.status(200).json({ 
-            message: "Hoàn tiền thành công vào ví nội bộ!", 
+        res.status(200).json({
+            message: "Hoàn tiền thành công vào ví nội bộ!",
             transactionId: refundTrans._id,
             currentBalance: user.walletBalance
         });

@@ -207,7 +207,7 @@ const FoodDetailModal = ({ itemId, initialItem, onClose, onAddedToCart, onItemUp
               )}
 
               <p className="text-sm text-gray-600 leading-relaxed">
-                {item.description || 'Món ngon tại canteen FPT — đặt nhanh, nhận đúng giờ slot.'}
+                {item.description || 'Món ngon tại CanTeen — đặt nhanh, nhận đúng giờ slot.'}
               </p>
 
               <p className="text-[11px] text-green-700 font-bold flex items-center gap-1.5">

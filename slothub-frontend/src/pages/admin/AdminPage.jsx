@@ -5,7 +5,7 @@ import { PortalThemeProvider, usePortalTheme } from '../../context/PortalThemeCo
 import api from '../../api/axios';
 import {
   LayoutDashboard, Users, Store, ArrowLeftRight,
-  Settings, LogOut, Bell, ExternalLink, Zap, MessageSquare, Menu, X
+  Settings, LogOut, Bell, ExternalLink, Zap, MessageSquare, MessagesSquare, Menu, X
 } from 'lucide-react';
 
 import AdminDashboard from './subpages/AdminDashboard';
@@ -14,6 +14,7 @@ import AdminUsers from './subpages/AdminUsers';
 import AdminSettings from './subpages/AdminSettings';
 import AdminVendors from './subpages/AdminVendors';
 import AdminNotifications from './subpages/AdminNotifications';
+import AdminForum from './subpages/AdminForum';
 import MessagingCenter from '../../components/messaging/MessagingCenter';
 import BrandLogo from '../../components/BrandLogo';
 import PortalThemeToggle from '../../components/PortalThemeToggle';
@@ -26,6 +27,7 @@ const AdminPageContent = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [msgUnread, setMsgUnread] = useState(0);
+  const [forumPending, setForumPending] = useState(0);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -50,6 +52,22 @@ const AdminPageContent = () => {
   }, [user, activeTab]);
 
   useEffect(() => {
+    const fetchForumPending = async () => {
+      try {
+        if (user?.role === 'admin') {
+          const res = await api.get('/forum/admin/posts', { params: { status: 'pending', limit: 1 } });
+          setForumPending(res.data.pendingCount || 0);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchForumPending();
+    const ft = setInterval(fetchForumPending, 30000);
+    return () => clearInterval(ft);
+  }, [user, activeTab]);
+
+  useEffect(() => {
     const fetchMsgUnread = async () => {
       try {
         if (user?.role === 'admin') {
@@ -70,6 +88,7 @@ const AdminPageContent = () => {
     { id: 'transactions', label: 'Duyệt lệnh Nạp/Rút', icon: <ArrowLeftRight size={20} /> },
     { id: 'users', label: 'Quản lý Tài khoản', icon: <Users size={20} /> },
     { id: 'vendors', label: 'Quản lý Gian hàng', icon: <Store size={20} /> },
+    { id: 'forum', label: 'Kiểm duyệt Diễn đàn', icon: <MessagesSquare size={20} /> },
     { id: 'messages', label: 'Tin nhắn quầy', icon: <MessageSquare size={20} /> },
     { id: 'notifications', label: 'Thông báo hệ thống', icon: <Bell size={20} /> },
     { id: 'settings', label: 'Cấu hình hệ thống', icon: <Settings size={20} /> },
@@ -136,6 +155,11 @@ const AdminPageContent = () => {
                 {item.id === 'notifications' && unreadCount > 0 && (
                   <span className="relative z-10 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse">
                     {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+                {item.id === 'forum' && forumPending > 0 && (
+                  <span className="relative z-10 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                    {forumPending > 99 ? '99+' : forumPending}
                   </span>
                 )}
                 {item.id === 'messages' && msgUnread > 0 && (
@@ -208,9 +232,8 @@ const AdminPageContent = () => {
             <button
               type="button"
               onClick={() => setActiveTab('notifications')}
-              className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative ${
-                activeTab === 'notifications' ? 'portal-icon-btn-active' : 'portal-icon-btn'
-              }`}
+              className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative ${activeTab === 'notifications' ? 'portal-icon-btn-active' : 'portal-icon-btn'
+                }`}
             >
               <Bell size={18} />
               {unreadCount > 0 && (
@@ -225,10 +248,9 @@ const AdminPageContent = () => {
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="portal-external-btn flex items-center gap-2 text-sm font-black px-3.5 sm:px-5 py-2.5 rounded-full transition-all duration-300 shadow-sm hover:scale-105 border"
+              className="portal-external-btn flex items-center gap-2 text-sm font-black px-5 py-2.5 rounded-full transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-105 border"
             >
-              <span className="hidden sm:inline">VỀ TRANG BÁN HÀNG</span>
-              <ExternalLink size={16} />
+              VỀ TRANG BÁN HÀNG <ExternalLink size={16} />
             </button>
           </div>
         </header>
@@ -240,6 +262,7 @@ const AdminPageContent = () => {
             {activeTab === 'users' && <AdminUsers />}
             {activeTab === 'settings' && <AdminSettings />}
             {activeTab === 'vendors' && <AdminVendors />}
+            {activeTab === 'forum' && <AdminForum />}
             {activeTab === 'messages' && <MessagingCenter mode="admin" theme={theme} />}
             {activeTab === 'notifications' && <AdminNotifications />}
           </div>

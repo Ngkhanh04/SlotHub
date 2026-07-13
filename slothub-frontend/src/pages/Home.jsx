@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
-import { ShoppingCart, Search, Trash2, Utensils, LogOut, ChevronDown, Wallet, Store, X, Minus, Plus, Receipt, UserCircle, Star, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Search, Trash2, Utensils, LogOut, ChevronDown, Wallet, Store, X, Minus, Plus, Receipt, UserCircle, Star, MessageSquare, Trophy } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo'; 
 import WalletWidget from '../components/WalletWidget';
 import Footer from '../components/Footer';
@@ -33,6 +33,7 @@ const Home = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   const [timeSlots, setTimeSlots] = useState([]);
   const [selectedSlotId, setSelectedSlotId] = useState('');
@@ -241,24 +242,14 @@ const Home = () => {
         ).length
       : 0;
 
-  // HÀM MỚI: Kiểm tra giỏ hàng trước khi sang Checkout
   const handleProceedToCheckout = () => {
     if (!user) {
       alert(t('home.loginToOrder'));
       return navigate('/login');
     }
-
-    if (cart.items && cart.items.length > 0) {
-      const firstVendorId = cart.items[0].menuItem?.vendor?._id || cart.items[0].menuItem?.vendor;
-      const hasMultipleVendors = cart.items.some(i => {
-        const vId = i.menuItem?.vendor?._id || i.menuItem?.vendor;
-        return String(vId) !== String(firstVendorId);
-      });
-
-      if (hasMultipleVendors) {
-        alert("⛔ LỖI: Giỏ hàng đang chứa món của nhiều quầy khác nhau. Vui lòng xóa bớt để chỉ giữ lại món của 1 quầy!");
-        return; 
-      }
+    if (!cart.items?.length) {
+      alert(t('home.cartEmptyLong'));
+      return;
     }
     navigate('/checkout');
   };
@@ -297,25 +288,94 @@ const Home = () => {
           {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-4 top-3.5 text-gray-400 hover:text-red-500 transition-colors bg-gray-200 rounded-full p-0.5"><X size={16} /></button>}
         </div>
 
-        <div className="flex items-center space-x-3 sm:space-x-5">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <LanguageToggle className="hidden sm:inline-flex" />
+          
           {user && user.role === 'student' && (
+            <>
+              {/* Header Cart Wrapper (group for hover popover) */}
+              <div className="relative group">
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="relative p-2.5 bg-gray-50 hover:bg-orange-50 rounded-full border border-gray-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all text-gray-600 hover:text-[#F27124] flex items-center justify-center"
+                >
+                  <ShoppingCart size={18} className="group-hover:scale-110 transition-transform" />
+                  {cart.items?.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#F27124] text-white font-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                      {cart.items.reduce((sum, item) => sum + item.quantity, 0)}
+                    </span>
+                  )}
+                </button>
+
+                {/* Desktop Hover Popover (Shopee Style) */}
+                <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 pointer-events-none opacity-0 invisible group-hover:pointer-events-auto group-hover:opacity-100 group-hover:visible transition-all duration-200 origin-top-right transform scale-95 group-hover:scale-100 hidden lg:block">
+                  {/* Caret pointing up */}
+                  <div className="absolute right-4 -top-2 w-4 h-4 bg-white border-t border-l border-gray-100 rotate-45"></div>
+
+                  <div className="relative z-10">
+                    <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Món ăn mới thêm</p>
+
+                    {!cart.items || cart.items.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <ShoppingCart size={32} className="text-gray-300 mb-2" />
+                        <p className="text-xs text-gray-500 font-bold">Giỏ hàng trống</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                          {cart.items.slice(0, 3).map(i => (
+                            <div key={i.menuItem?._id} className="flex gap-2.5 items-center bg-gray-50/50 p-2 rounded-xl border border-gray-100">
+                              <img src={i.menuItem?.imageUrl || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-lg object-cover border border-gray-100 shrink-0" alt="thumb" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-800 truncate">{i.menuItem?.name}</p>
+                                <p className="text-[10px] text-gray-400 font-bold mt-0.5">Số lượng: {i.quantity}</p>
+                              </div>
+                              <span className="text-xs font-black text-[#F27124] shrink-0">{(i.menuItem?.price * i.quantity).toLocaleString()}đ</span>
+                            </div>
+                          ))}
+                          {cart.items.length > 3 && (
+                            <p className="text-[10px] text-center text-gray-400 font-bold pt-1">và {cart.items.length - 3} món khác...</p>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
+                          <span className="text-xs text-gray-500 font-bold">
+                            {cart.items.reduce((sum, item) => sum + item.quantity, 0)} {t('home.items')}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsCartOpen(true);
+                            }}
+                            className="bg-gray-900 text-white font-black text-xs px-4 py-2 rounded-xl shadow-md hover:bg-black transition-colors"
+                          >
+                            Xem Giỏ Hàng
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Wallet Widget Trigger */}
               <div 
                 onClick={() => setIsWalletOpen(true)} 
-                className="flex items-center gap-2 bg-gradient-to-r from-orange-50 to-white px-5 py-2.5 rounded-full border border-orange-200 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all group"
+                className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-orange-50 to-white px-3 sm:px-5 py-2.5 rounded-full border border-orange-200 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all group"
               >
                 <Wallet size={18} className="text-[#F27124] group-hover:animate-bounce" />
-                <span className="font-black text-[#D95F1B]">{balance?.toLocaleString() || 0}đ</span>
+                <span className="font-black text-[#D95F1B] text-xs sm:text-sm">{balance?.toLocaleString() || 0}đ</span>
               </div>
+            </>
           )}
 
           {!user ? (
-            <button onClick={() => navigate('/login')} className="bg-gradient-to-r from-[#F27124] to-[#D95F1B] text-white px-8 py-3 rounded-full font-black shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-0.5 active:translate-y-0">
+            <button onClick={() => navigate('/login')} className="bg-gradient-to-r from-[#F27124] to-[#D95F1B] text-white px-6 sm:px-8 py-3 rounded-full font-black shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-0.5 active:translate-y-0 text-sm sm:text-base">
               {t('nav.login')}
             </button>
           ) : (
             <div className="relative">
-              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 bg-white border border-gray-200 p-1 pr-4 rounded-full font-bold text-gray-700 hover:bg-gray-50 hover:shadow-md transition-all">
+              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-1 sm:gap-3 bg-white border border-gray-200 p-1 pr-1 sm:pr-4 rounded-full font-bold text-gray-700 hover:bg-gray-50 hover:shadow-md transition-all">
                 {user?.avatar ? (
                   <img src={user.avatar} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-white object-cover shadow-sm" referrerPolicy="no-referrer" />
                 ) : (
@@ -323,8 +383,8 @@ const Home = () => {
                       {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </div>
                 )}
-                <span className="text-sm line-clamp-1 max-w-[100px]">{user?.name || t('common.student')}</span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-300 ${showUserMenu ? 'rotate-180' : ''}`} />
+                <span className="text-sm line-clamp-1 max-w-[100px] hidden sm:inline">{user?.name || t('common.student')}</span>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-300 hidden sm:inline ${showUserMenu ? 'rotate-180' : ''}`} />
               </button>
 
               {showUserMenu && (
@@ -355,6 +415,9 @@ const Home = () => {
                     </button>
                     <button onClick={() => { navigate('/messages'); setShowUserMenu(false); }} className="w-full flex items-center gap-3 px-5 py-3 text-sm font-bold text-gray-600 hover:bg-orange-50 hover:text-[#F27124] rounded-xl transition-colors">
                       <MessageSquare size={18} /> {t('nav.messages')}
+                    </button>
+                    <button onClick={() => { navigate('/forum'); setShowUserMenu(false); }} className="w-full flex items-center gap-3 px-5 py-3 text-sm font-bold text-gray-600 hover:bg-orange-50 hover:text-[#F27124] rounded-xl transition-colors">
+                      <Trophy size={18} /> {t('nav.forum')}
                     </button>
                     <button onClick={logout} className="w-full flex items-center gap-3 px-5 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors mt-2">
                       <LogOut size={18} /> {t('nav.logout')}
@@ -444,7 +507,7 @@ const Home = () => {
 
           {selectedSlot && closedHiddenCount > 0 && (
             <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 mb-5">
-              {t('home.closedHidden')}
+              {t('home.closedHidden', { count: closedHiddenCount })}
               <span className="text-[#F27124]"> {selectedSlot.startTime} – {selectedSlot.endTime}</span>.
               {' '}{t('home.showAll')}.
             </p>
@@ -454,7 +517,7 @@ const Home = () => {
              <div className="w-full h-[240px] md:h-[280px] rounded-[2.5rem] overflow-hidden mb-10 shadow-2xl shadow-gray-200/50 relative group">
                 <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[10s]" alt="Banner" />
                 <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/50 to-transparent flex flex-col justify-center px-10 md:px-16">
-                    <span className="text-[10px] md:text-xs font-black text-orange-300 uppercase tracking-[0.2em] mb-2 block">SlotHub · FPT Canteen</span>
+                    <span className="text-[10px] md:text-xs font-black text-orange-300 uppercase tracking-[0.2em] mb-2 block">SlotHub · CanTeen</span>
                     <h2 className="text-3xl md:text-4xl font-black text-white mb-3 leading-tight">{t('home.bannerTitle')} <span className="text-[#F27124]">{t('home.bannerTitleHighlight')}</span></h2>
                     <p className="text-gray-300 font-medium max-w-md text-sm md:text-base">{t('home.bannerDesc')}</p>
                     <div className="flex flex-wrap gap-2 mt-4">
@@ -552,7 +615,7 @@ const Home = () => {
           )}
         </main>
 
-        {/* CỘT PHẢI: Chọn quầy + khung giờ xem menu + giỏ hàng */}
+        {/* CỘT PHẢI: Chọn quầy + khung giờ xem menu */}
         <aside className="w-[340px] xl:w-[380px] shrink-0 sticky top-24 max-h-[calc(100vh-6rem)] overflow-y-auto custom-scrollbar hidden lg:block space-y-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1">{t('home.filtersTitle')}</p>
 
@@ -575,95 +638,111 @@ const Home = () => {
 
           {selectedSlot && closedHiddenCount > 0 && (
             <p className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-              {t('home.closedHidden')}
+              {t('home.closedHidden', { count: closedHiddenCount })}
             </p>
           )}
-
-          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 xl:p-7 shadow-2xl shadow-gray-200/60 border border-white relative overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#F27124]/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div className="flex justify-between items-center mb-6 relative z-10">
-              <h3 className="font-black text-gray-900 text-xl flex items-center gap-2">
-                <div className="bg-gray-900 text-white p-2 rounded-xl"><ShoppingCart size={20} /></div> {t('home.cart')}
-              </h3>
-              <span className="bg-[#F27124] text-white font-black text-xs px-3 py-1.5 rounded-full shadow-md shadow-orange-500/30">
-  {cart.items?.length || 0} {t('home.items')}
-</span>
-            </div>
-            
-            <div className="space-y-4 mb-8 max-h-[36vh] overflow-y-auto pr-2 custom-scrollbar relative z-10">
-              {!cart.items || cart.items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4"><ShoppingCart size={32} className="text-gray-300" /></div>
-                  <p className="text-center text-gray-500 font-bold mb-1">{t('home.cartEmptyLong')}</p>
-                </div>
-              ) : (
-                cart.items.map(i => (
-                  <div key={i.menuItem?._id} className="flex gap-3 bg-white border border-gray-100 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0">
-                      <img src={i.menuItem?.imageUrl || 'https://via.placeholder.com/100'} className="w-full h-full object-cover" alt="item"/>
-                    </div>
-                    <div className="flex flex-col flex-1 justify-between">
-                      <div className="flex justify-between items-start gap-2">
-                        <p className="font-bold text-gray-800 text-[13px] leading-tight line-clamp-2">{i.menuItem?.name}</p>
-                        <button onClick={() => handleRemoveItem(i.menuItem?._id)} className="text-gray-300 hover:text-red-500 transition-colors shrink-0 mt-0.5"><X size={16}/></button>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="font-black text-[13px] text-[#F27124]">{(i.menuItem?.price * i.quantity).toLocaleString()}đ</span>
-                        <div className="flex items-center bg-gray-50 rounded-full border border-gray-200 p-0.5">
-                          <button onClick={() => handleUpdateQuantity(i.menuItem?._id, i.quantity, -1)} className="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:bg-white hover:shadow-sm transition-all">
-                            {i.quantity === 1 ? <Trash2 size={12} className="text-red-500" /> : <Minus size={12} />}
-                          </button>
-                          <span className="w-6 text-center font-black text-gray-800 text-xs">{i.quantity}</span>
-                          <button onClick={() => handleUpdateQuantity(i.menuItem?._id, i.quantity, 1)} className="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:bg-white hover:shadow-sm transition-all"><Plus size={12} /></button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="border-t border-gray-100 pt-6 relative z-10 bg-white/50 rounded-xl">
-              <div className="flex justify-between items-end mb-6 px-1">
-                <span className="text-gray-500 font-bold text-sm">{t('home.total')}:</span>
-                <span className="text-3xl font-black text-gray-900 tracking-tight">{cart.totalPrice?.toLocaleString() || 0}<span className="text-lg text-gray-400 ml-1">đ</span></span>
-              </div>
-              {user && cart.vendorOpen === false && cart.items?.length > 0 && (
-                <p className="text-xs text-red-600 font-bold mb-3 px-1 text-center leading-relaxed">
-                  {cart.vendorStatusMessage || 'Quán đã đóng cửa, không thể đặt đơn lúc này.'}
-                </p>
-              )}
-              <button 
-                  onClick={handleProceedToCheckout} 
-                  disabled={user && ((!cart.items || cart.items.length === 0) || cart.vendorOpen === false)} 
-                  className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-gray-900/20 hover:bg-black hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed group"
-              >
-                {user ? (cart.vendorOpen === false ? t('home.stallClosedBtn') : t('home.proceedOrder')) : t('home.loginToOrderBtn')}
-              </button>
-            </div>
-          </div>
         </aside>
       </div>
 
-      {/* Mobile: thanh giỏ cố định dưới */}
-      {user?.role === 'student' && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 flex items-center justify-between gap-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
-          <div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase">{t('home.cart')}</p>
-            <p className="text-lg font-black text-gray-900">
-              {cart.totalPrice?.toLocaleString() || 0}đ
-              <span className="text-xs text-gray-400 font-bold ml-1">· {cart.items?.length || 0} {t('home.items')}</span>
-            </p>
+      {/* Responsive Cart Drawer */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop Overlay */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out"
+            onClick={() => setIsCartOpen(false)}
+          ></div>
+
+          {/* Drawer Panel */}
+          <div className="absolute inset-y-0 right-0 max-w-full flex">
+            <div className="w-screen sm:max-w-md bg-white shadow-2xl flex flex-col relative overflow-hidden animate-in slide-in-from-right duration-300">
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#F27124]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Drawer Header */}
+              <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-900 text-white p-2.5 rounded-xl"><ShoppingCart size={20} /></div>
+                  <h3 className="font-black text-gray-900 text-xl">{t('home.cart')}</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#F27124] text-white font-black text-xs px-3 py-1.5 rounded-full shadow-md shadow-orange-500/30">
+                    {cart.items?.length || 0} {t('home.items')}
+                  </span>
+                  <button 
+                    onClick={() => setIsCartOpen(false)} 
+                    className="p-2 text-gray-400 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-full transition-all"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Drawer Body (Items list) */}
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 custom-scrollbar relative z-10">
+                {!cart.items || cart.items.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                      <ShoppingCart size={36} className="text-gray-300" />
+                    </div>
+                    <p className="text-center text-gray-500 font-bold mb-1">{t('home.cartEmptyLong')}</p>
+                    <button 
+                      onClick={() => setIsCartOpen(false)} 
+                      className="mt-4 text-[#F27124] font-black text-sm hover:underline"
+                    >
+                      {t('common.back')}
+                    </button>
+                  </div>
+                ) : (
+                  cart.items.map(i => (
+                    <div key={i.menuItem?._id} className="flex gap-3 bg-white border border-gray-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0">
+                        <img src={i.menuItem?.imageUrl || 'https://via.placeholder.com/100'} className="w-full h-full object-cover" alt="item"/>
+                      </div>
+                      <div className="flex flex-col flex-1 justify-between">
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="font-bold text-gray-800 text-[13px] sm:text-sm leading-tight line-clamp-2">{i.menuItem?.name}</p>
+                          <button onClick={() => handleRemoveItem(i.menuItem?._id)} className="text-gray-300 hover:text-red-500 transition-colors shrink-0 mt-0.5"><X size={16}/></button>
+                        </div>
+                        <div className="flex justify-between items-center mt-3">
+                          <span className="font-black text-[13px] sm:text-sm text-[#F27124]">{(i.menuItem?.price * i.quantity).toLocaleString()}đ</span>
+                          <div className="flex items-center bg-gray-50 rounded-full border border-gray-200 p-0.5">
+                            <button onClick={() => handleUpdateQuantity(i.menuItem?._id, i.quantity, -1)} className="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:bg-white hover:shadow-sm transition-all">
+                              {i.quantity === 1 ? <Trash2 size={12} className="text-red-500" /> : <Minus size={12} />}
+                            </button>
+                            <span className="w-6 text-center font-black text-gray-800 text-xs">{i.quantity}</span>
+                            <button onClick={() => handleUpdateQuantity(i.menuItem?._id, i.quantity, 1)} className="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:bg-white hover:shadow-sm transition-all"><Plus size={12} /></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="border-t border-gray-100 p-6 bg-gray-50/50 relative z-10">
+                <div className="flex justify-between items-end mb-6 px-1">
+                  <span className="text-gray-500 font-bold text-sm">{t('home.total')}:</span>
+                  <span className="text-3xl font-black text-gray-900 tracking-tight">{cart.totalPrice?.toLocaleString() || 0}<span className="text-lg text-gray-400 ml-1">đ</span></span>
+                </div>
+                {user && cart.vendorOpen === false && cart.items?.length > 0 && (
+                  <p className="text-xs text-red-600 font-bold mb-4 px-1 text-center leading-relaxed">
+                    {cart.vendorStatusMessage || 'Quán đã đóng cửa, không thể đặt đơn lúc này.'}
+                  </p>
+                )}
+                <button 
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    handleProceedToCheckout();
+                  }} 
+                  disabled={user && (!cart.items || cart.items.length === 0)} 
+                  className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-gray-900/20 hover:bg-black hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed group"
+                >
+                  {user ? t('home.proceedOrder') : t('home.loginToOrderBtn')}
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={handleProceedToCheckout}
-            disabled={user && ((!cart.items?.length) || cart.vendorOpen === false)}
-            className="shrink-0 bg-gray-900 text-white px-5 py-3 rounded-xl font-black text-sm disabled:opacity-50"
-          >
-            {t('home.checkout')}
-          </button>
         </div>
       )}
 
