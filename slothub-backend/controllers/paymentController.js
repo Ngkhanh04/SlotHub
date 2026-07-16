@@ -355,6 +355,29 @@ const verifyPaymentReturn = async (req, res) => {
 
 
 
+        if (orderCode) {
+            const orderCodeNum = Number(orderCode);
+            const primaryOrder = await Order.findOne({ orderCode: orderCodeNum }).populate('user').populate('vendor', 'name');
+
+            if (primaryOrder && primaryOrder.paymentStatus !== 'Paid') {
+                if (primaryOrder.paymentMethod === 'payos') {
+                    try {
+                        const paymentInfo = await payos.paymentRequests.get(orderCodeNum);
+                        if (paymentInfo && paymentInfo.status === 'PAID') {
+                            const batchOrders = await getBatchOrders(primaryOrder);
+                            await finalizePaidOrders(req, batchOrders, paymentInfo.transactions?.[0]?.reference || 'PAYOS_RETURN');
+                        } else {
+                            console.log(`⚠️ Đơn hàng ${orderCodeNum} chưa được thanh toán thành công trên PayOS. Trạng thái: ${paymentInfo?.status}`);
+                            return res.status(400).json({ message: "Đơn hàng chưa được thanh toán thành công trên PayOS." });
+                        }
+                    } catch (payosErr) {
+                        console.error("❌ Lỗi khi xác thực thanh toán từ PayOS:", payosErr.message);
+                        return res.status(500).json({ message: "Không thể xác thực trạng thái thanh toán từ PayOS." });
+                    }
+                }
+            }
+        }
+
         return res.status(200).json({ message: "Giao dịch thành công!" });
 
 

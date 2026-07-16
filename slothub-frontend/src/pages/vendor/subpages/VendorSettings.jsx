@@ -360,7 +360,7 @@ const VendorSettings = () => {
         <button
           type="submit"
           disabled={saving}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#F27124] hover:bg-[#D95F1B] font-black px-10 py-4 rounded-2xl shadow-lg shadow-orange-500/20 disabled:opacity-50 transition-all active:scale-95"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#F27124] hover:bg-[#D95F1B] text-white font-black px-10 py-4 rounded-2xl shadow-lg shadow-orange-500/20 disabled:opacity-50 transition-all active:scale-95"
         >
           {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
           LƯU CÀI ĐẶT GIAN HÀNG

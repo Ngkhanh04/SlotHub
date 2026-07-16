@@ -5,9 +5,12 @@ import {
   Wallet, ArrowUpFromLine, Clock, CheckCircle2, XCircle,
   Loader2, Building, Info, Receipt
 } from 'lucide-react';
+import { usePortalTheme } from '../../../context/PortalThemeContext';
 import VendorRevenueHistory from '../../../components/vendor/VendorRevenueHistory';
 
 const VendorWallet = ({ refreshKey = 0 }) => {
+  const { theme } = usePortalTheme();
+  const isDark = theme === 'dark';
   useContext(AuthContext);
   const [summary, setSummary] = useState({ balance: 0, bankAccount: {}, transactions: [] });
   const [payoutAlerts, setPayoutAlerts] = useState([]);
@@ -105,12 +108,12 @@ const VendorWallet = ({ refreshKey = 0 }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="bg-gradient-to-br from-[#F27124] to-[#ff985e] rounded-3xl p-8 shadow-xl shadow-orange-500/20 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#F27124] to-[#ff985e] rounded-3xl p-8 shadow-xl shadow-orange-500/20 relative overflow-hidden text-white">
         <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
         <p className="text-orange-100 text-sm font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
           <Wallet size={16} /> Số dư ví doanh thu
         </p>
-        <p className="text-4xl font-black mb-1">{summary.balance?.toLocaleString()}đ</p>
+        <p className="text-4xl font-black mb-1 text-white">{summary.balance?.toLocaleString()}đ</p>
         <p className="text-orange-50/90 text-sm font-medium">
           95% giá trị mỗi đơn thanh toán · Phí sàn 5% về quỹ Admin
         </p>
@@ -127,16 +130,20 @@ const VendorWallet = ({ refreshKey = 0 }) => {
           {payoutAlerts.map((alert) => (
             <div
               key={alert._id}
-              className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 flex gap-3"
+              className={`border rounded-2xl p-4 flex gap-3 transition-all duration-300 ${
+                isDark
+                  ? 'bg-green-500/10 border-green-500/30'
+                  : 'bg-green-50 border-green-200'
+              }`}
             >
-              <CheckCircle2 className="text-green-400 shrink-0 mt-0.5" size={22} />
+              <CheckCircle2 className={`shrink-0 mt-0.5 ${isDark ? 'text-green-400' : 'text-green-600'}`} size={22} />
               <div className="flex-1 min-w-0">
-                <p className="font-black text-green-300">{alert.title}</p>
-                <p className="text-sm text-green-100/90 mt-1">{alert.message}</p>
+                <p className={`font-black ${isDark ? 'text-green-300' : 'text-green-800'}`}>{alert.title}</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-green-100/90' : 'text-green-700'}`}>{alert.message}</p>
                 <button
                   type="button"
                   onClick={() => dismissPayoutAlert(alert._id)}
-                  className="mt-2 text-xs font-bold text-green-400 hover:underline"
+                  className={`mt-2 text-xs font-bold hover:underline ${isDark ? 'text-green-400' : 'text-green-600'}`}
                 >
                   Đã kiểm tra sao kê — ẩn thông báo
                 </button>
@@ -146,11 +153,15 @@ const VendorWallet = ({ refreshKey = 0 }) => {
         </div>
       )}
 
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex gap-3 text-sm text-blue-200">
-        <Info size={20} className="shrink-0 text-blue-400" />
+      <div className={`border rounded-2xl p-4 flex gap-3 text-sm transition-all duration-300 ${
+        isDark
+          ? 'bg-blue-500/10 border-blue-500/20 text-blue-200'
+          : 'bg-blue-50 border-blue-200 text-blue-800'
+      }`}>
+        <Info size={20} className={`shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
         <div>
-          <p className="font-bold text-blue-100 mb-1">Quy trình rút tiền</p>
-          <p>Khi sinh viên thanh toán, tiền thực tế vào quỹ Admin (VNPay/chuyển khoản). Ví của bạn ghi nhận doanh thu để rút. Admin duyệt lệnh rút, chuyển khoản và gửi thông báo xác nhận — bạn kiểm tra sao kê và mục Thông báo quầy.</p>
+          <p className={`font-bold mb-1 ${isDark ? 'text-blue-100' : 'text-blue-900'}`}>Quy trình rút tiền</p>
+          <p className={isDark ? 'text-blue-200/90' : 'text-blue-700'}>Khi sinh viên thanh toán, tiền thực tế vào quỹ Admin (VNPay/chuyển khoản). Ví của bạn ghi nhận doanh thu để rút. Admin duyệt lệnh rút, chuyển khoản và gửi thông báo xác nhận — bạn kiểm tra sao kê và mục Thông báo quầy.</p>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import {
   ShoppingBag, Wallet, UtensilsCrossed, TrendingUp, Clock,
   Loader2, Store, CircleDot, Package, Bell, ChevronRight, Flame, Users
 } from 'lucide-react';
+import { usePortalTheme } from '../../../context/PortalThemeContext';
 import { formatVendorHoursRange } from '../../../utils/timeFormat';
 import VendorRevenueHistory from '../../../components/vendor/VendorRevenueHistory';
 import VendorPeriodAnalytics from '../../../components/vendor/VendorPeriodAnalytics';
@@ -11,6 +12,8 @@ import VendorExcelExportButton from '../../../components/vendor/VendorExcelExpor
 import VendorStorePauseToggle from '../../../components/vendor/VendorStorePauseToggle';
 
 const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
+  const { theme } = usePortalTheme();
+  const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -136,7 +139,11 @@ const VendorDashboard = ({ onGoSettings, onGoOrders, onGoNotifications }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="bg-gradient-to-r from-[#1E293B] to-[#0f172a] rounded-3xl border border-[var(--portal-border)] p-6 md:p-8">
+      <div className={`rounded-3xl border p-6 md:p-8 transition-all duration-300 ${
+        isDark
+          ? 'bg-gradient-to-r from-[#1E293B] to-[#0f172a] border-[var(--portal-border)] text-white'
+          : 'bg-white border-[var(--portal-border)] text-[var(--portal-text)] shadow-sm'
+      }`}>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
           <div className="flex items-center gap-4">
             {vendor.imageUrl ? (

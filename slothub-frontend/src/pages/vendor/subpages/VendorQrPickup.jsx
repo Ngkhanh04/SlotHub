@@ -5,6 +5,7 @@ import {
   QrCode, Camera, CameraOff, Loader2, CheckCircle2, XCircle,
   User, Package, Hash
 } from 'lucide-react';
+import { usePortalTheme } from '../../../context/PortalThemeContext';
 
 const QR_REGION_ID = 'vendor-qr-scanner-region';
 
@@ -17,6 +18,8 @@ const statusLabel = {
 };
 
 const VendorQrPickup = ({ onOrdersRefresh }) => {
+  const { theme } = usePortalTheme();
+  const isDark = theme === 'dark';
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [verifying, setVerifying] = useState(false);
@@ -123,13 +126,17 @@ const VendorQrPickup = ({ onOrdersRefresh }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl">
-      <div className="bg-gradient-to-br from-[#1E293B] to-[#0f172a] rounded-3xl border border-[var(--portal-border)] p-6 md:p-8">
+      <div className={`rounded-3xl p-6 md:p-8 border transition-all duration-300 ${
+        isDark
+          ? 'bg-gradient-to-br from-[#1E293B] to-[#0f172a] border-[var(--portal-border)] text-white'
+          : 'bg-white border-[var(--portal-border)] text-[var(--portal-text)] shadow-sm'
+      }`}>
         <h2 className="text-2xl font-black flex items-center gap-3">
           <QrCode className="text-[#F27124]" size={28} />
           Quét mã nhận món
         </h2>
-        <p className="portal-muted text-sm mt-2">
-          Khách hàng mở <strong className="portal-text-secondary">Mã nhận món</strong> — mã có hiệu lực <strong className="text-orange-300">2 giờ</strong> sau khi thanh toán.
+        <p className={`text-sm mt-2 transition-colors duration-300 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          Khách hàng mở <strong className={isDark ? 'text-white' : 'text-gray-800'}>Mã nhận món</strong> — mã có hiệu lực <strong className={isDark ? 'text-orange-300' : 'text-[#F27124] font-bold'}>2 giờ</strong> sau khi thanh toán.
         </p>
       </div>
 
