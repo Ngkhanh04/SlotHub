@@ -7,7 +7,6 @@ if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
 
-
 const sendEmail = async (options) => {
   // Cấu hình tài khoản gửi email
   const transporter = nodemailer.createTransport({
