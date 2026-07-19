@@ -1,12 +1,12 @@
 {
   "files": {
-    "main.css": "/SlotHub-Toivoa/static/css/main.9d0bb5b7.css",
-    "main.js": "/SlotHub-Toivoa/static/js/main.eb7ecb41.js",
+    "main.css": "/SlotHub-Toivoa/static/css/main.52962b6b.css",
+    "main.js": "/SlotHub-Toivoa/static/js/main.57bea144.js",
     "static/js/206.a623d2b4.chunk.js": "/SlotHub-Toivoa/static/js/206.a623d2b4.chunk.js",
     "index.html": "/SlotHub-Toivoa/index.html"
   },
   "entrypoints": [
-    "static/css/main.9d0bb5b7.css",
-    "static/js/main.eb7ecb41.js"
+    "static/css/main.52962b6b.css",
+    "static/js/main.57bea144.js"
   ]
 }
