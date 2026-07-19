@@ -1,5 +1,12 @@
 // utils/sendEmail.js
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Ép Node.js ưu tiên phân giải IPv4 trước để tránh lỗi ENETUNREACH (không hỗ trợ IPv6 trên Render)
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 
 const sendEmail = async (options) => {
   // Cấu hình tài khoản gửi email
