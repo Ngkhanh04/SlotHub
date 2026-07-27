@@ -7,22 +7,24 @@ if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
 
-const sendEmail = async (options) => {
-  // Cấu hình tài khoản gửi email
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // Dùng cổng 587 với STARTTLS (cổng 465 thường bị tường lửa của Render chặn làm Connection timeout)
-    family: 4,     // Ép buộc chỉ dùng IPv4
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
+// Khởi tạo transporter duy nhất 1 lần khi server khởi động + sử dụng connection pool
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Dùng cổng 587 với STARTTLS
+  pool: true,    // Bật Connection Pooling để giữ kết nối SMTP luôn nóng (gửi mail siêu nhanh)
+  maxConnections: 5,
+  family: 4,     // Ép buộc chỉ dùng IPv4
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+});
 
+const sendEmail = async (options) => {
   // Nội dung bức thư
   const mailOptions = {
     from: `SlotHub <${process.env.EMAIL_USER}>`,
