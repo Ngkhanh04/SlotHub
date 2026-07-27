@@ -162,7 +162,7 @@ const addOverviewSheet = (wb, { vendor, overview }) => {
 
     ws.mergeCells(16, 1, 16, colSpan);
     const foot = ws.getCell(16, 1);
-    foot.value = 'SlotHub · FPT Canteen — Báo cáo tự động từ hệ thống đặt món';
+    foot.value = 'SlotHub · Canteen — Báo cáo tự động từ hệ thống đặt món';
     foot.font = { name: 'Segoe UI', size: 9, italic: true, color: { argb: C.muted } };
     foot.alignment = { horizontal: 'center' };
 };
@@ -301,7 +301,7 @@ async function buildVendorExcelWorkbook(payload) {
     const wb = new ExcelJS.Workbook();
     wb.creator = 'SlotHub';
     wb.created = new Date();
-    wb.company = 'SlotHub FPT Canteen';
+    wb.company = 'SlotHub Canteen';
 
     addOverviewSheet(wb, { vendor, overview });
 
