@@ -240,10 +240,10 @@ const Orders = () => {
                         <li key={idx} className="flex justify-between items-center text-sm">
                           <div className="flex items-center gap-3">
                             <img
-                              src={item.menuItem?.imageUrl || 'https://via.placeholder.com/50?text=Mon'}
+                              src={item.menuItem?.imageUrl || 'https://placehold.co/50x50?text=Mon'}
                               alt={item.menuItem?.name || 'Món ăn'}
                               className="w-10 h-10 rounded-lg object-cover border border-gray-100 shrink-0"
-                              onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/50?text=Mon'; }}
+                              onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/50x50?text=Mon'; }}
                             />
                             <span className="font-black text-[#F27124]">x{item.quantity}</span>
                             <span className="font-medium text-gray-700">{item.menuItem?.name || 'Món ăn'}</span>

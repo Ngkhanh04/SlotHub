@@ -10,7 +10,10 @@ if (dns.setDefaultResultOrder) {
 const sendEmail = async (options) => {
   // Cấu hình tài khoản gửi email
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4, // Ép buộc chỉ dùng IPv4 để khắc phục lỗi ENETUNREACH trên Render Free
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
